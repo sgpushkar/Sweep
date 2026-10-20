@@ -1,4 +1,4 @@
-import React, { useRef, useState } from 'react';
+import React, { useRef, useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -14,6 +14,7 @@ import {
 import { MediaItem } from '../../types/media';
 import { theme } from '../../theme/theme';
 import { MediaDiscoveryService } from '../../services/mediaDiscovery';
+import { WhatsAppCleanerNativeBridge } from '../../native/WhatsAppCleanerNative';
 import { Badge } from '../common/Badge';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
@@ -39,6 +40,32 @@ export const SwipeCard: React.FC<SwipeCardProps> = ({
   const pan = useRef(new Animated.ValueXY()).current;
   const isSwiping = useRef(false);
   const [imageError, setImageError] = useState(false);
+  const [thumbUri, setThumbUri] = useState<string | null>(null);
+
+  const lowerName = (item.name || '').toLowerCase();
+  const lowerMime = (item.mimeType || '').toLowerCase();
+  const isVideo =
+    item.mediaType === 'video' ||
+    lowerMime.startsWith('video/') ||
+    lowerName.endsWith('.mp4') ||
+    lowerName.endsWith('.3gp') ||
+    lowerName.endsWith('.mkv') ||
+    lowerName.endsWith('.mov') ||
+    lowerName.endsWith('.avi');
+
+  useEffect(() => {
+    let isMounted = true;
+    WhatsAppCleanerNativeBridge.getThumbnail(item.uri, isVideo)
+      .then(thumb => {
+        if (isMounted && thumb) {
+          setThumbUri(thumb);
+        }
+      })
+      .catch(() => {});
+    return () => {
+      isMounted = false;
+    };
+  }, [item.uri, isVideo]);
 
   const panResponder = useRef(
     PanResponder.create({
@@ -114,8 +141,6 @@ export const SwipeCard: React.FC<SwipeCardProps> = ({
     extrapolate: 'clamp',
   });
 
-  const isVideo = item.mediaType === 'video';
-
   return (
     <Animated.View
       style={[
@@ -147,6 +172,13 @@ export const SwipeCard: React.FC<SwipeCardProps> = ({
         {/* Media Preview: Handle Videos Safely Without Crashing Image Decoder */}
         {isVideo ? (
           <View style={styles.fallbackContainer}>
+            {thumbUri ? (
+              <Image
+                source={{ uri: thumbUri }}
+                style={[styles.image, { width: DECK_IMAGE_WIDTH, height: DECK_IMAGE_HEIGHT, position: 'absolute' }]}
+                resizeMode="cover"
+              />
+            ) : null}
             <View style={styles.videoPosterCircle}>
               <Text style={styles.playIconLarge}>▶</Text>
             </View>
@@ -166,7 +198,7 @@ export const SwipeCard: React.FC<SwipeCardProps> = ({
           </View>
         ) : (
           <Image
-            source={{ uri: item.uri }}
+            source={{ uri: thumbUri || item.uri }}
             style={[styles.image, { width: DECK_IMAGE_WIDTH, height: DECK_IMAGE_HEIGHT }]}
             resizeMode="cover"
             resizeMethod="resize"

@@ -13,6 +13,8 @@ import android.os.Build
 import android.provider.DocumentsContract
 import android.provider.MediaStore
 import android.provider.Settings
+import android.graphics.Bitmap
+import android.util.Size
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import androidx.core.content.FileProvider
@@ -293,11 +295,18 @@ class WhatsAppMediaCleanerModule(private val reactContext: ReactApplicationConte
                     val displayName = c.getString(nameCol) ?: ""
                     val path = if (pathCol != -1) c.getString(pathCol) ?: "" else ""
 
+                    val lowerName = displayName.lowercase()
+                    if (lowerName.endsWith(".nomedia") || lowerName.endsWith(".tmp")) {
+                        continue
+                    }
+
                     // Check if this file belongs to WhatsApp (modern path, legacy path, or filename)
                     if (isWhatsAppMedia(displayName, path)) {
                         val mediaId = c.getLong(idCol)
                         val contentUri = ContentUris.withAppendedId(collectionUri, mediaId).toString()
                         val size = if (sizeCol != -1 && !c.isNull(sizeCol)) c.getLong(sizeCol) else 0L
+                        if (size <= 0L) continue
+
                         val mime = if (mimeCol != -1) c.getString(mimeCol) ?: (if (isVideo) "video/mp4" else "image/jpeg") else (if (isVideo) "video/mp4" else "image/jpeg")
                         val dateAdded = if (dateAddedCol != -1 && !c.isNull(dateAddedCol)) c.getLong(dateAddedCol) else 0L
                         val dateModified = if (dateModifiedCol != -1 && !c.isNull(dateModifiedCol)) c.getLong(dateModifiedCol) else 0L
@@ -305,13 +314,17 @@ class WhatsAppMediaCleanerModule(private val reactContext: ReactApplicationConte
                         val height = if (heightCol != -1 && !c.isNull(heightCol)) c.getInt(heightCol) else 0
                         val duration = if (isVideo && durationCol != -1 && !c.isNull(durationCol)) c.getLong(durationCol) else 0L
 
+                        val isRealVideo = isVideo || mime.startsWith("video/") ||
+                                lowerName.endsWith(".mp4") || lowerName.endsWith(".3gp") ||
+                                lowerName.endsWith(".mkv") || lowerName.endsWith(".mov")
+
                         val item = Arguments.createMap().apply {
-                            putString("id", "${if (isVideo) "vid" else "img"}_$mediaId")
+                            putString("id", "${if (isRealVideo) "vid" else "img"}_$mediaId")
                             putDouble("mediaStoreId", mediaId.toDouble())
                             putString("uri", contentUri)
                             putString("name", displayName)
                             putString("mimeType", mime)
-                            putString("mediaType", if (isVideo) "video" else "image")
+                            putString("mediaType", if (isRealVideo) "video" else "image")
                             putDouble("size", size.toDouble())
                             putString("relativePath", path)
                             putDouble("dateAdded", dateAdded.toDouble())
@@ -832,6 +845,69 @@ class WhatsAppMediaCleanerModule(private val reactContext: ReactApplicationConte
                 }
             } catch (e: Exception) {
                 promise.reject("LOAD_DATA_ERROR", e.message, e)
+            }
+        }
+    }
+
+    @ReactMethod
+    fun getThumbnail(uriString: String, isVideo: Boolean, promise: Promise) {
+        moduleScope.launch {
+            try {
+                val uri = Uri.parse(uriString)
+                val cleanSeg = uri.lastPathSegment?.replace(Regex("[^a-zA-Z0-9_-]"), "_") ?: "tmp"
+                val thumbsDir = File(reactContext.cacheDir, "thumbs")
+                if (!thumbsDir.exists()) {
+                    thumbsDir.mkdirs()
+                }
+                val thumbFile = File(thumbsDir, "th_${cleanSeg}.jpg")
+                if (thumbFile.exists() && thumbFile.length() > 0) {
+                    promise.resolve("file://${thumbFile.absolutePath}")
+                    return@launch
+                }
+
+                var bitmap: Bitmap? = null
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                    try {
+                        bitmap = reactContext.contentResolver.loadThumbnail(uri, Size(512, 512), null)
+                    } catch (e: Exception) {
+                        bitmap = null
+                    }
+                }
+
+                if (bitmap == null) {
+                    try {
+                        val id = ContentUris.parseId(uri)
+                        bitmap = if (isVideo) {
+                            MediaStore.Video.Thumbnails.getThumbnail(
+                                reactContext.contentResolver,
+                                id,
+                                MediaStore.Video.Thumbnails.MINI_KIND,
+                                null
+                            )
+                        } else {
+                            MediaStore.Images.Thumbnails.getThumbnail(
+                                reactContext.contentResolver,
+                                id,
+                                MediaStore.Images.Thumbnails.MINI_KIND,
+                                null
+                            )
+                        }
+                    } catch (e: Exception) {
+                        bitmap = null
+                    }
+                }
+
+                if (bitmap != null) {
+                    FileOutputStream(thumbFile).use { out ->
+                        bitmap.compress(Bitmap.CompressFormat.JPEG, 80, out)
+                    }
+                    bitmap.recycle()
+                    promise.resolve("file://${thumbFile.absolutePath}")
+                } else {
+                    promise.resolve(null)
+                }
+            } catch (e: Exception) {
+                promise.resolve(null)
             }
         }
     }

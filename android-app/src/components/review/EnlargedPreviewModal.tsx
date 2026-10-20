@@ -27,6 +27,17 @@ export const EnlargedPreviewModal: React.FC<EnlargedPreviewModalProps> = ({
 }) => {
   if (!item) return null;
 
+  const lowerName = (item.name || '').toLowerCase();
+  const lowerMime = (item.mimeType || '').toLowerCase();
+  const isVideo =
+    item.mediaType === 'video' ||
+    lowerMime.startsWith('video/') ||
+    lowerName.endsWith('.mp4') ||
+    lowerName.endsWith('.3gp') ||
+    lowerName.endsWith('.mkv') ||
+    lowerName.endsWith('.mov') ||
+    lowerName.endsWith('.avi');
+
   return (
     <Modal
       visible={visible}
@@ -51,7 +62,7 @@ export const EnlargedPreviewModal: React.FC<EnlargedPreviewModalProps> = ({
 
         {/* Media Preview Box */}
         <View style={styles.mediaBox}>
-          {item.mediaType === 'video' ? (
+          {isVideo ? (
             <View style={styles.videoInspectBox}>
               <View style={styles.videoInspectCircle}>
                 <Text style={styles.videoInspectPlayIcon}>▶</Text>

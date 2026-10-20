@@ -79,6 +79,15 @@ export class WhatsAppCleanerNativeBridge {
     };
   }
 
+  static async getThumbnail(uri: string, isVideo: boolean): Promise<string | null> {
+    if (!this.isAvailable()) return null;
+    try {
+      return await WhatsAppCleanerNative.getThumbnail(uri, isVideo);
+    } catch {
+      return null;
+    }
+  }
+
   // ---------------------------------------------------------------------------
   // Deletion Authorization
   // ---------------------------------------------------------------------------
