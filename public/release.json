@@ -1,10 +1,10 @@
 {
   "version": "1.0.0",
   "apkUrl": "/releases/WhatsAppMediaCleaner.apk",
-  "size": "113.7 MB",
+  "size": "50.8 MB",
   "date": "2026-10-13",
   "minAndroid": "Android 8.0 (API 26)",
-  "sha256": "7cbecf463d42104bf3ed3c687f5acc8824c98bc2cea71a15c0e239e0a27a00ac",
+  "sha256": "1d718615f446ec9c0f32594aac30e34e55d450ee4b8fc39f1e57ba77f8658c2f",
   "notes": [
     "Initial production release of WhatsApp Media Cleaner",
     "Real Android MediaStore image and video discovery",

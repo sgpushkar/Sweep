@@ -1,21 +1,84 @@
-import {RELEASE} from './release.js';
+import { RELEASE } from './release.js';
 
-export const ITEMS=[
- {t:"IMG",n:"IMG-20260412-WA0031.jpg",s:"2.4 MB",g:"linear-gradient(160deg,#3a4a3f,#141a16 70%)",sh:"radial-gradient(circle at 70% 30%,#e8d9a8 0 9%,transparent 10%)"},
- {t:"VID",n:"VID-20260301-WA0007.mp4",s:"38.1 MB",g:"linear-gradient(200deg,#46344d,#15101a 70%)",sh:""},
- {t:"IMG",n:"IMG-20251230-WA0102.jpg",s:"1.1 MB",g:"linear-gradient(140deg,#4d3a30,#1a1411 70%)",sh:"linear-gradient(transparent 60%,#0006)"},
- {t:"VID",n:"VID-20260118-WA0044.mp4",s:"12.7 MB",g:"linear-gradient(180deg,#2f3f52,#10151b 70%)",sh:""},
- {t:"IMG",n:"IMG-20260209-WA0018.jpg",s:"3.8 MB",g:"linear-gradient(120deg,#52483a,#17140f 70%)",sh:"radial-gradient(circle at 30% 65%,#ffffff22 0 20%,transparent 21%)"},
- {t:"IMG",n:"IMG-20250921-WA0009.jpg",s:"0.9 MB",g:"linear-gradient(210deg,#3a3f52,#101118 70%)",sh:""}
+export const SAMPLE_MEDIA = [
+  {
+    id: "WA0031",
+    name: "IMG-20260412-WA0031.jpg",
+    type: "Forwarded Photo",
+    size: "3.4 MB",
+    origin: "Forwarded 4 times · Family Group",
+    timestamp: "Today, 08:14 AM",
+    image: "/media/morning.jpg",
+    previewBg: "#1a1812",
+    previewAccent: "#f59e0b",
+    aspect: "4/3",
+    caption: "Good morning wishes with floral glitter & coffee",
+    recommended: "discard"
+  },
+  {
+    id: "WA0007",
+    name: "VID-20260301-WA0007.mp4",
+    type: "Forwarded Video (2:15)",
+    size: "48.2 MB",
+    origin: "Forwarded many times · Neighborhood Chat",
+    timestamp: "Yesterday, 02:40 PM",
+    image: "/media/puppy_video.jpg",
+    isVideo: true,
+    previewBg: "#121b18",
+    previewAccent: "#10b981",
+    aspect: "16/9",
+    caption: "Trampoline puppy viral video circulating in 4 groups",
+    recommended: "discard"
+  },
+  {
+    id: "WA0018",
+    name: "IMG-20260408-WA0018.jpg",
+    type: "Camera Photo",
+    size: "4.8 MB",
+    origin: "Direct Chat · Sarah",
+    timestamp: "08 Apr 2026 · 06:45 PM",
+    image: "/media/family.jpg",
+    previewBg: "#1a1518",
+    previewAccent: "#ec4899",
+    aspect: "4/3",
+    caption: "Sunset family portrait at the beach vacation",
+    recommended: "keep"
+  },
+  {
+    id: "WA0102",
+    name: "IMG-20251230-WA0102.jpg",
+    type: "Screenshot",
+    size: "2.1 MB",
+    origin: "Dinner Split Group",
+    timestamp: "30 Dec 2025 · 09:22 PM",
+    image: "/media/receipt.jpg",
+    previewBg: "#16171d",
+    previewAccent: "#6366f1",
+    aspect: "3/4",
+    caption: "The Oakwood Bistro restaurant receipt already settled",
+    recommended: "discard"
+  }
 ];
 
-export const FAQ=[
- ["What does the app do?","It scans accessible WhatsApp images and videos, lets you review them one at a time with swipes, and queues the ones you don't want so you can delete them and free up space."],
- ["Does it upload my photos?","It's designed to work locally with no account or cloud upload. If you want certainty, inspect the source (when published) and check your network activity."],
- ["Does it delete images automatically?","No. Swiping left only marks an item. You review the queue, then confirm through Android's authorization flow."],
- ["Why does Android request media permissions?","Android gates access to images and videos behind permissions. The app needs them to list the WhatsApp media you can review and to request deletion."],
- ["How do I install the APK?","Download it, open it, and allow installs from your browser or file manager if Android asks. Steps differ by Android version and device."],
- ["What should I do if installation is blocked?","Open Settings, find the install-unknown-apps setting for the app you downloaded with, and allow it for this install. Some devices also have Play Protect prompts you can review."],
- ["How do I verify the APK's checksum?","Compare the SHA-256 listed above with your file's hash. On Linux or macOS run sha256sum file.apk, on Windows PowerShell run Get-FileHash file.apk. They should match exactly."],
- ["How can I report a bug?",RELEASE.repoUrl||RELEASE.support?"Use the issue or support link in the download section.":"No issue tracker or support contact has been published yet. It will appear in the download section when configured."]
+export const EDITORIAL_FAQ = [
+  {
+    q: "Why an APK download instead of the Google Play Store?",
+    a: "Google Play now heavily restricts apps that manage files outside their own sandbox. Under recent Play policies, declaring file-management access for targeted utility deletion creates endless policy hurdles. Distributing an open, signed standalone APK directly allows Sweep to use Android's official MediaStore APIs without ad SDKs, analytics frameworks, or account requirements."
+  },
+  {
+    q: "Does swiping delete files immediately?",
+    a: "No. Swiping is strictly a sorting action. When you swipe left, the file is placed into a local staging queue. Nothing leaves your phone until you review the queue and trigger Android's native system dialog (MediaStore.createDeleteRequest). The Android operating system itself confirms with you before any byte is modified."
+  },
+  {
+    q: "Can the app see my WhatsApp messages or contacts?",
+    a: "Never. Sweep has no contact access, no message access, no camera access, and zero network access permissions in its manifest. It queries only the public Android MediaStore index for images and videos with 'WhatsApp' in their relative storage path."
+  },
+  {
+    q: "How do I handle the 'Unknown app' warning when installing?",
+    a: "When you open a downloaded APK, Android asks you to grant 'Install unknown apps' permission to your browser (Chrome/Firefox/Samsung Internet). Tap 'Settings' in that prompt and toggle the switch. If Google Play Protect shows a verification card, tap 'More details' → 'Install anyway'. Sweep is signed with a verifiable cryptographic certificate and the SHA-256 hash is published on this page."
+  },
+  {
+    q: "What happens if I make a mistake while swiping?",
+    a: "Every card has an instant undo button (or press Z / Backspace on desktop). You can also uncheck individual files in the final queue screen before confirming deletion."
+  }
 ];
