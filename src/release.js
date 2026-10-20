@@ -4,10 +4,10 @@ export const RELEASE={
   tagline:"Clean up WhatsApp media with a swipe.",
   version:"1.0.0",
   apkUrl:"https://github.com/sgpushkar/Sweep/releases/download/v1.0.0/WhatsAppMediaCleaner.apk",
-  size:"50.8 MB",
-  date:"2026-10-13",
+  size:"50.7 MB",
+  date:"2026-10-21",
   minAndroid:"Android 8.0 (API 26)",
-  sha256:"1d718615f446ec9c0f32594aac30e34e55d450ee4b8fc39f1e57ba77f8658c2f",
+  sha256:"e85b226fe9fd807f9d3ddba82243357d7d133a6cb3002fdaafbe06c7ac03553e",
   notes:[
     "Initial production release of WhatsApp Media Cleaner",
     "Real Android MediaStore image and video discovery",
