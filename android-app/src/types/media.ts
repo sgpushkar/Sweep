@@ -1,4 +1,4 @@
-export type MediaType = 'image' | 'video';
+export type MediaType = 'image' | 'video' | 'audio' | 'sticker' | 'document';
 
 export type ReviewDecision = 'KEEP' | 'DELETE' | 'SKIP' | 'PENDING';
 
@@ -9,6 +9,7 @@ export interface MediaItem {
   mediaStoreId?: number;
   uri: string; // content:// URI or file path
   name: string; // e.g. "IMG-20240214-WA0012.jpg"
+  extension?: string;
   mimeType: string; // e.g. "image/jpeg", "video/mp4"
   mediaType: MediaType;
   size: number; // in bytes

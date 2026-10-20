@@ -41,6 +41,23 @@ class WhatsAppMediaCleanerModule(private val reactContext: ReactApplicationConte
         private const val REQUEST_CODE_PICK_FOLDER = 4202
         private const val REQUEST_CODE_PERMISSIONS = 4203
         private const val REQUEST_CODE_INSTALL_PERMISSION = 4204
+
+        val VIDEO_EXTENSIONS = setOf(
+            "mp4", "3gp", "3gpp", "3g2", "mkv", "mov", "avi", "webm",
+            "m4v", "wmv", "flv", "ts", "m2ts", "vob", "ogv", "divx"
+        )
+        val IMAGE_EXTENSIONS = setOf(
+            "jpg", "jpeg", "png", "webp", "heic", "heif", "gif", "bmp"
+        )
+        val AUDIO_EXTENSIONS = setOf(
+            "opus", "m4a", "aac", "mp3", "ogg", "amr", "wav", "flac", "wma"
+        )
+        val IGNORED_EXTENSIONS = setOf(
+            "nomedia", "tmp", "enc", "crypt12", "crypt14", "crypt15", "crypt1", "crypt",
+            "thumb", "thumbnails", "part", "crdownload", "bak", "trash", "bin", "dat",
+            "db", "sqlite", "apk", "txt", "doc", "docx", "pdf", "zip", "rar", "tar", "gz",
+            "log", "ini", "json", "xml", "html", "js"
+        )
     }
 
     private val moduleScope = CoroutineScope(Dispatchers.IO + SupervisorJob())
@@ -298,35 +315,63 @@ class WhatsAppMediaCleanerModule(private val reactContext: ReactApplicationConte
                     val path = if (pathCol != -1) c.getString(pathCol) ?: "" else ""
 
                     val lowerName = displayName.lowercase()
-                    if (lowerName.endsWith(".nomedia") || lowerName.endsWith(".tmp")) {
+                    val lowerPath = path.lowercase()
+                    val ext = if (lowerName.contains('.')) lowerName.substringAfterLast('.', "") else ""
+
+                    // 1. Skip dotfiles, hidden items, temporary files, and ignored extensions
+                    if (lowerName.startsWith(".") ||
+                        lowerName.contains(".nomedia") ||
+                        lowerName.contains(".tmp") ||
+                        lowerName.endsWith(".part") ||
+                        lowerName.endsWith(".crdownload") ||
+                        ext in IGNORED_EXTENSIONS
+                    ) {
                         continue
                     }
 
-                    // Check if this file belongs to WhatsApp (modern path, legacy path, or filename)
+                    // 2. Skip 0-byte or corrupted header files (< 128 bytes)
+                    val size = if (sizeCol != -1 && !c.isNull(sizeCol)) c.getLong(sizeCol) else 0L
+                    if (size < 128L) continue
+
+                    // 3. Check if this file belongs to WhatsApp (modern path, legacy path, or filename)
                     if (isWhatsAppMedia(displayName, path)) {
                         val mediaId = c.getLong(idCol)
                         val contentUri = ContentUris.withAppendedId(collectionUri, mediaId).toString()
-                        val size = if (sizeCol != -1 && !c.isNull(sizeCol)) c.getLong(sizeCol) else 0L
-                        if (size <= 0L) continue
 
-                        val mime = if (mimeCol != -1) c.getString(mimeCol) ?: (if (isVideo) "video/mp4" else "image/jpeg") else (if (isVideo) "video/mp4" else "image/jpeg")
+                        val mime = if (mimeCol != -1) c.getString(mimeCol) ?: "" else ""
                         val dateAdded = if (dateAddedCol != -1 && !c.isNull(dateAddedCol)) c.getLong(dateAddedCol) else 0L
                         val dateModified = if (dateModifiedCol != -1 && !c.isNull(dateModifiedCol)) c.getLong(dateModifiedCol) else 0L
                         val width = if (widthCol != -1 && !c.isNull(widthCol)) c.getInt(widthCol) else 0
                         val height = if (heightCol != -1 && !c.isNull(heightCol)) c.getInt(heightCol) else 0
                         val duration = if (isVideo && durationCol != -1 && !c.isNull(durationCol)) c.getLong(durationCol) else 0L
 
-                        val isRealVideo = isVideo || mime.startsWith("video/") ||
-                                lowerName.endsWith(".mp4") || lowerName.endsWith(".3gp") ||
-                                lowerName.endsWith(".mkv") || lowerName.endsWith(".mov")
+                        val isVid = isVideo || mime.startsWith("video/") || VIDEO_EXTENSIONS.contains(ext)
+                        val isAud = mime.startsWith("audio/") || AUDIO_EXTENSIONS.contains(ext)
+                        val isSticker = (ext == "webp" || mime == "image/webp") &&
+                                (lowerPath.contains("sticker") || lowerName.startsWith("stk-"))
+                        val isImg = !isVid && !isAud && !isSticker &&
+                                (mime.startsWith("image/") || IMAGE_EXTENSIONS.contains(ext))
+
+                        // Strictly skip any unknown or unclassified non-media files
+                        if (!isVid && !isAud && !isImg && !isSticker) {
+                            continue
+                        }
+
+                        val finalMediaType = when {
+                            isVid -> "video"
+                            isAud -> "audio"
+                            isSticker -> "sticker"
+                            else -> "image"
+                        }
 
                         val item = Arguments.createMap().apply {
-                            putString("id", "${if (isRealVideo) "vid" else "img"}_$mediaId")
+                            putString("id", "${finalMediaType}_$mediaId")
                             putDouble("mediaStoreId", mediaId.toDouble())
                             putString("uri", contentUri)
                             putString("name", displayName)
-                            putString("mimeType", mime)
-                            putString("mediaType", if (isRealVideo) "video" else "image")
+                            putString("extension", ext)
+                            putString("mimeType", if (mime.isNotBlank()) mime else if (isVid) "video/mp4" else if (isAud) "audio/opus" else "image/jpeg")
+                            putString("mediaType", finalMediaType)
                             putDouble("size", size.toDouble())
                             putString("relativePath", path)
                             putDouble("dateAdded", dateAdded.toDouble())
@@ -869,33 +914,73 @@ class WhatsAppMediaCleanerModule(private val reactContext: ReactApplicationConte
 
                 var bitmap: Bitmap? = null
 
-                // Tier 1: Android Q+ ContentResolver loadThumbnail
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                // Tier 1: For Videos - Use MediaMetadataRetriever via FileDescriptor (most reliable native decode)
+                if (isVideo) {
+                    var retriever: MediaMetadataRetriever? = null
                     try {
-                        bitmap = reactContext.contentResolver.loadThumbnail(uri, Size(512, 512), null)
-                    } catch (e: Exception) {
-                        bitmap = null
-                    }
-                }
-
-                // Tier 2: MediaMetadataRetriever for Any Video Format (MP4, 3GP, MKV, MOV, WebM, etc.)
-                if (bitmap == null && isVideo) {
-                    try {
-                        val retriever = MediaMetadataRetriever()
+                        retriever = MediaMetadataRetriever()
                         if (uri.scheme == "file") {
                             retriever.setDataSource(uri.path)
                         } else {
-                            retriever.setDataSource(reactContext, uri)
+                            reactContext.contentResolver.openFileDescriptor(uri, "r")?.use { pfd ->
+                                retriever.setDataSource(pfd.fileDescriptor)
+                            }
                         }
-                        bitmap = retriever.getFrameAtTime(1000000, MediaMetadataRetriever.OPTION_CLOSEST_SYNC)
-                            ?: retriever.getFrameAtTime()
-                        retriever.release()
-                    } catch (e: Exception) {
+                        bitmap = retriever.frameAtTime ?: retriever.getFrameAtTime(0)
+                    } catch (t: Throwable) {
+                        bitmap = null
+                    } finally {
+                        try {
+                            retriever?.release()
+                        } catch (t: Throwable) {}
+                    }
+                }
+
+                // Tier 2: For Images - Stream-decode downsampled BitmapFactory with RGB_565 (software bitmap)
+                if (bitmap == null && !isVideo) {
+                    try {
+                        reactContext.contentResolver.openInputStream(uri)?.use { stream ->
+                            val boundsOptions = BitmapFactory.Options().apply {
+                                inJustDecodeBounds = true
+                            }
+                            BitmapFactory.decodeStream(stream, null, boundsOptions)
+
+                            if (boundsOptions.outWidth > 0 && boundsOptions.outHeight > 0) {
+                                val reqWidth = 512
+                                val reqHeight = 512
+                                var inSampleSize = 1
+                                if (boundsOptions.outHeight > reqHeight || boundsOptions.outWidth > reqWidth) {
+                                    val halfHeight = boundsOptions.outHeight / 2
+                                    val halfWidth = boundsOptions.outWidth / 2
+                                    while ((halfHeight / inSampleSize) >= reqHeight && (halfWidth / inSampleSize) >= reqWidth) {
+                                        inSampleSize *= 2
+                                    }
+                                }
+
+                                reactContext.contentResolver.openInputStream(uri)?.use { decodeStream ->
+                                    val decodeOptions = BitmapFactory.Options().apply {
+                                        this.inSampleSize = inSampleSize
+                                        inPreferredConfig = Bitmap.Config.RGB_565
+                                    }
+                                    bitmap = BitmapFactory.decodeStream(decodeStream, null, decodeOptions)
+                                }
+                            }
+                        }
+                    } catch (t: Throwable) {
                         bitmap = null
                     }
                 }
 
-                // Tier 3: MediaStore Thumbnail Queries (Pre-Q or MediaStore indexed files)
+                // Tier 3: Android Q+ ContentResolver loadThumbnail fallback
+                if (bitmap == null && Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                    try {
+                        bitmap = reactContext.contentResolver.loadThumbnail(uri, Size(512, 512), null)
+                    } catch (t: Throwable) {
+                        bitmap = null
+                    }
+                }
+
+                // Tier 4: Pre-Q MediaStore thumbnail fallback
                 if (bitmap == null) {
                     try {
                         val id = ContentUris.parseId(uri)
@@ -914,68 +999,77 @@ class WhatsAppMediaCleanerModule(private val reactContext: ReactApplicationConte
                                 null
                             )
                         }
-                    } catch (e: Exception) {
+                    } catch (t: Throwable) {
                         bitmap = null
                     }
                 }
 
-                // Tier 4: For High-Res Photos - In-stream Downsampled BitmapFactory decode with RGB_565 (Never OOMs!)
-                if (bitmap == null && !isVideo) {
+                // Tier 5: MediaMetadataRetriever fallback if item was classified as image but is actually a video clip
+                if (bitmap == null) {
+                    var retriever: MediaMetadataRetriever? = null
                     try {
-                        reactContext.contentResolver.openInputStream(uri)?.use { stream ->
-                            val boundsOptions = BitmapFactory.Options().apply {
-                                inJustDecodeBounds = true
-                            }
-                            BitmapFactory.decodeStream(stream, null, boundsOptions)
-
-                            val reqWidth = 512
-                            val reqHeight = 512
-                            var inSampleSize = 1
-                            if (boundsOptions.outHeight > reqHeight || boundsOptions.outWidth > reqWidth) {
-                                val halfHeight = boundsOptions.outHeight / 2
-                                val halfWidth = boundsOptions.outWidth / 2
-                                while ((halfHeight / inSampleSize) >= reqHeight && (halfWidth / inSampleSize) >= reqWidth) {
-                                    inSampleSize *= 2
-                                }
-                            }
-
-                            reactContext.contentResolver.openInputStream(uri)?.use { decodeStream ->
-                                val decodeOptions = BitmapFactory.Options().apply {
-                                    this.inSampleSize = inSampleSize
-                                    inPreferredConfig = Bitmap.Config.RGB_565
-                                }
-                                bitmap = BitmapFactory.decodeStream(decodeStream, null, decodeOptions)
+                        retriever = MediaMetadataRetriever()
+                        if (uri.scheme == "file") {
+                            retriever.setDataSource(uri.path)
+                        } else {
+                            reactContext.contentResolver.openFileDescriptor(uri, "r")?.use { pfd ->
+                                retriever.setDataSource(pfd.fileDescriptor)
                             }
                         }
-                    } catch (e: Exception) {
+                        bitmap = retriever.frameAtTime ?: retriever.getFrameAtTime(0)
+                    } catch (t: Throwable) {
                         bitmap = null
+                    } finally {
+                        try {
+                            retriever?.release()
+                        } catch (t: Throwable) {}
                     }
                 }
 
-                val loadedBitmap = bitmap
-                if (loadedBitmap != null) {
-                    val finalBitmap = if (loadedBitmap.width > 512 || loadedBitmap.height > 512) {
-                        val aspect = loadedBitmap.width.toFloat() / loadedBitmap.height.toFloat()
-                        val targetW = if (aspect >= 1f) 512 else (512 * aspect).toInt()
-                        val targetH = if (aspect >= 1f) (512 / aspect).toInt() else 512
-                        val scaled = Bitmap.createScaledBitmap(loadedBitmap, Math.max(1, targetW), Math.max(1, targetH), true)
-                        if (scaled != loadedBitmap) {
-                            loadedBitmap.recycle()
-                        }
-                        scaled
-                    } else {
-                        loadedBitmap
+                // Safely convert Hardware Bitmaps to software-accessible bitmaps before scaling or compressing
+                var safeBitmap = bitmap
+                if (safeBitmap != null && Build.VERSION.SDK_INT >= Build.VERSION_CODES.O && safeBitmap.config == Bitmap.Config.HARDWARE) {
+                    try {
+                        val copy = safeBitmap.copy(Bitmap.Config.ARGB_8888, false)
+                        safeBitmap.recycle()
+                        safeBitmap = copy
+                    } catch (t: Throwable) {
+                        safeBitmap = null
                     }
+                }
 
-                    FileOutputStream(thumbFile).use { out ->
-                        finalBitmap.compress(Bitmap.CompressFormat.JPEG, 80, out)
+                val loadedBitmap = safeBitmap
+                if (loadedBitmap != null) {
+                    try {
+                        val finalBitmap = if (loadedBitmap.width > 512 || loadedBitmap.height > 512) {
+                            val aspect = loadedBitmap.width.toFloat() / loadedBitmap.height.toFloat()
+                            val targetW = if (aspect >= 1f) 512 else (512 * aspect).toInt()
+                            val targetH = if (aspect >= 1f) (512 / aspect).toInt() else 512
+                            val scaled = Bitmap.createScaledBitmap(loadedBitmap, Math.max(1, targetW), Math.max(1, targetH), true)
+                            if (scaled != loadedBitmap) {
+                                loadedBitmap.recycle()
+                            }
+                            scaled
+                        } else {
+                            loadedBitmap
+                        }
+
+                        // Write to a temporary file first, then atomic-rename to prevent concurrent half-reads
+                        val tmpFile = File(thumbsDir, "th_${cleanSeg}.tmp")
+                        FileOutputStream(tmpFile).use { out ->
+                            finalBitmap.compress(Bitmap.CompressFormat.JPEG, 80, out)
+                        }
+                        finalBitmap.recycle()
+                        tmpFile.renameTo(thumbFile)
+
+                        promise.resolve("file://${thumbFile.absolutePath}")
+                    } catch (t: Throwable) {
+                        promise.resolve(null)
                     }
-                    finalBitmap.recycle()
-                    promise.resolve("file://${thumbFile.absolutePath}")
                 } else {
                     promise.resolve(null)
                 }
-            } catch (e: Exception) {
+            } catch (t: Throwable) {
                 promise.resolve(null)
             }
         }
@@ -988,41 +1082,91 @@ class WhatsAppMediaCleanerModule(private val reactContext: ReactApplicationConte
                 val thumbsDir = File(reactContext.cacheDir, "thumbs")
                 if (!thumbsDir.exists()) thumbsDir.mkdirs()
 
-                for (i in 0 until items.size()) {
+                // Prefetch at most 2 upcoming items to prevent CPU & codec starvation
+                val maxItems = Math.min(items.size(), 2)
+                for (i in 0 until maxItems) {
                     val item = items.getMap(i) ?: continue
-                    val uriStr = item.getString("uri") ?: continue
-                    val isVid = item.getBoolean("isVideo")
+                    val uriStr = if (item.hasKey("uri")) item.getString("uri") else null ?: continue
+                    val isVid = if (item.hasKey("isVideo")) item.getBoolean("isVideo") else false
                     val uri = Uri.parse(uriStr)
                     val cleanSeg = uri.lastPathSegment?.replace(Regex("[^a-zA-Z0-9_-]"), "_") ?: "tmp"
                     val thumbFile = File(thumbsDir, "th_${cleanSeg}.jpg")
                     if (thumbFile.exists() && thumbFile.length() > 0) continue
 
                     var bitmap: Bitmap? = null
-                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                    if (isVid) {
+                        var retriever: MediaMetadataRetriever? = null
+                        try {
+                            retriever = MediaMetadataRetriever()
+                            if (uri.scheme == "file") {
+                                retriever.setDataSource(uri.path)
+                            } else {
+                                reactContext.contentResolver.openFileDescriptor(uri, "r")?.use { pfd ->
+                                    retriever.setDataSource(pfd.fileDescriptor)
+                                }
+                            }
+                            bitmap = retriever.frameAtTime ?: retriever.getFrameAtTime(0)
+                        } catch (t: Throwable) {
+                            bitmap = null
+                        } finally {
+                            try { retriever?.release() } catch (t: Throwable) {}
+                        }
+                    } else {
+                        try {
+                            reactContext.contentResolver.openInputStream(uri)?.use { stream ->
+                                val boundsOptions = BitmapFactory.Options().apply { inJustDecodeBounds = true }
+                                BitmapFactory.decodeStream(stream, null, boundsOptions)
+                                if (boundsOptions.outWidth > 0 && boundsOptions.outHeight > 0) {
+                                    var inSampleSize = 1
+                                    while ((boundsOptions.outHeight / inSampleSize) >= 512 && (boundsOptions.outWidth / inSampleSize) >= 512) {
+                                        inSampleSize *= 2
+                                    }
+                                    reactContext.contentResolver.openInputStream(uri)?.use { decodeStream ->
+                                        val decodeOptions = BitmapFactory.Options().apply {
+                                            this.inSampleSize = inSampleSize
+                                            inPreferredConfig = Bitmap.Config.RGB_565
+                                        }
+                                        bitmap = BitmapFactory.decodeStream(decodeStream, null, decodeOptions)
+                                    }
+                                }
+                            }
+                        } catch (t: Throwable) {
+                            bitmap = null
+                        }
+                    }
+
+                    if (bitmap == null && Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
                         try {
                             bitmap = reactContext.contentResolver.loadThumbnail(uri, Size(512, 512), null)
-                        } catch (e: Exception) {}
-                    }
-                    if (bitmap == null && isVid) {
-                        try {
-                            val retriever = MediaMetadataRetriever()
-                            if (uri.scheme == "file") retriever.setDataSource(uri.path)
-                            else retriever.setDataSource(reactContext, uri)
-                            bitmap = retriever.getFrameAtTime(1000000, MediaMetadataRetriever.OPTION_CLOSEST_SYNC)
-                                ?: retriever.getFrameAtTime()
-                            retriever.release()
-                        } catch (e: Exception) {}
-                    }
-                    val loadedPrefetch = bitmap
-                    if (loadedPrefetch != null) {
-                        FileOutputStream(thumbFile).use { out ->
-                            loadedPrefetch.compress(Bitmap.CompressFormat.JPEG, 80, out)
+                        } catch (t: Throwable) {
+                            bitmap = null
                         }
-                        loadedPrefetch.recycle()
+                    }
+
+                    var safeBitmap = bitmap
+                    if (safeBitmap != null && Build.VERSION.SDK_INT >= Build.VERSION_CODES.O && safeBitmap.config == Bitmap.Config.HARDWARE) {
+                        try {
+                            val copy = safeBitmap.copy(Bitmap.Config.ARGB_8888, false)
+                            safeBitmap.recycle()
+                            safeBitmap = copy
+                        } catch (t: Throwable) {
+                            safeBitmap = null
+                        }
+                    }
+
+                    if (safeBitmap != null) {
+                        try {
+                            val tmpFile = File(thumbsDir, "th_${cleanSeg}.tmp")
+                            FileOutputStream(tmpFile).use { out ->
+                                safeBitmap.compress(Bitmap.CompressFormat.JPEG, 80, out)
+                            }
+                            safeBitmap.recycle()
+                            tmpFile.renameTo(thumbFile)
+                        } catch (t: Throwable) {}
                     }
                 }
                 promise.resolve(true)
-            } catch (e: Exception) {
+            } catch (t: Throwable) {
                 promise.resolve(false)
             }
         }

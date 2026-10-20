@@ -23,6 +23,11 @@ interface CleanScreenProps {
   onScan: () => void;
 }
 
+const VIDEO_EXTENSIONS = new Set([
+  'mp4', '3gp', '3gpp', '3g2', 'mkv', 'mov', 'avi', 'webm',
+  'm4v', 'wmv', 'flv', 'ts', 'm2ts', 'vob', 'ogv', 'divx'
+]);
+
 export const CleanScreen: React.FC<CleanScreenProps> = ({
   items,
   decisions,
@@ -37,20 +42,22 @@ export const CleanScreen: React.FC<CleanScreenProps> = ({
   const { navigateTo, navigateTab } = useAppNavigation();
   const [inspectItem, setInspectItem] = useState<MediaItem | null>(null);
 
-  // Pre-warm thumbnail cache for the upcoming 4 items in the deck
+  // Pre-warm thumbnail cache conservatively for the upcoming 1-2 items in the deck
   useEffect(() => {
     if (!items || items.length === 0) return;
-    const upcoming = items.slice(currentIndex + 1, currentIndex + 5).map(i => {
+    const upcoming = items.slice(currentIndex + 1, currentIndex + 3).map(i => {
       const lowerName = (i.name || '').toLowerCase();
+      const lowerPath = (i.relativePath || '').toLowerCase();
       const lowerMime = (i.mimeType || '').toLowerCase();
+      const ext = i.extension || lowerName.split('.').pop() || '';
       const isVideo =
         i.mediaType === 'video' ||
         lowerMime.startsWith('video/') ||
-        lowerName.endsWith('.mp4') ||
-        lowerName.endsWith('.3gp') ||
-        lowerName.endsWith('.mkv') ||
-        lowerName.endsWith('.mov') ||
-        lowerName.endsWith('.avi');
+        VIDEO_EXTENSIONS.has(ext) ||
+        lowerName.startsWith('vid-') ||
+        lowerName.startsWith('video-') ||
+        lowerPath.includes('video') ||
+        lowerPath.includes('animated gifs');
       return { uri: i.uri, isVideo };
     });
     if (upcoming.length > 0) {

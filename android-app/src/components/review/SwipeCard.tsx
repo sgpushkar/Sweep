@@ -10,6 +10,7 @@ import {
   TouchableOpacity,
   Vibration,
   Platform,
+  ActivityIndicator,
 } from 'react-native';
 import { MediaItem } from '../../types/media';
 import { theme } from '../../theme/theme';
@@ -21,6 +22,17 @@ const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 const SWIPE_THRESHOLD = SCREEN_WIDTH * 0.28;
 const DECK_IMAGE_WIDTH = Math.round(SCREEN_WIDTH - 48);
 const DECK_IMAGE_HEIGHT = Math.round(SCREEN_HEIGHT * 0.58);
+
+const VIDEO_EXTENSIONS = new Set([
+  'mp4', '3gp', '3gpp', '3g2', 'mkv', 'mov', 'avi', 'webm',
+  'm4v', 'wmv', 'flv', 'ts', 'm2ts', 'vob', 'ogv', 'divx'
+]);
+
+const AUDIO_EXTENSIONS = new Set([
+  'opus', 'm4a', 'aac', 'mp3', 'ogg', 'amr', 'wav', 'flac', 'wma'
+]);
+
+const STICKER_EXTENSIONS = new Set(['webp']);
 
 interface SwipeCardProps {
   item: MediaItem;
@@ -43,29 +55,53 @@ export const SwipeCard: React.FC<SwipeCardProps> = ({
   const [thumbUri, setThumbUri] = useState<string | null>(null);
 
   const lowerName = (item.name || '').toLowerCase();
+  const lowerPath = (item.relativePath || '').toLowerCase();
   const lowerMime = (item.mimeType || '').toLowerCase();
+  const ext = item.extension || lowerName.split('.').pop() || '';
+
   const isVideo =
     item.mediaType === 'video' ||
     lowerMime.startsWith('video/') ||
-    lowerName.endsWith('.mp4') ||
-    lowerName.endsWith('.3gp') ||
-    lowerName.endsWith('.mkv') ||
-    lowerName.endsWith('.mov') ||
-    lowerName.endsWith('.avi');
+    VIDEO_EXTENSIONS.has(ext) ||
+    lowerName.startsWith('vid-') ||
+    lowerName.startsWith('video-') ||
+    lowerPath.includes('video') ||
+    lowerPath.includes('animated gifs');
+
+  const isAudio =
+    item.mediaType === 'audio' ||
+    lowerMime.startsWith('audio/') ||
+    AUDIO_EXTENSIONS.has(ext) ||
+    lowerName.startsWith('ptt-') ||
+    lowerName.startsWith('aud-') ||
+    lowerPath.includes('audio') ||
+    lowerPath.includes('voice notes');
+
+  const isSticker =
+    item.mediaType === 'sticker' ||
+    (STICKER_EXTENSIONS.has(ext) && (lowerPath.includes('sticker') || lowerName.startsWith('stk-')));
 
   useEffect(() => {
     let isMounted = true;
     WhatsAppCleanerNativeBridge.getThumbnail(item.uri, isVideo)
       .then(thumb => {
-        if (isMounted && thumb) {
-          setThumbUri(thumb);
+        if (isMounted) {
+          if (thumb) {
+            setThumbUri(thumb);
+          } else if (!isVideo && !isAudio) {
+            setImageError(true);
+          }
         }
       })
-      .catch(() => {});
+      .catch(() => {
+        if (isMounted && !isVideo && !isAudio) {
+          setImageError(true);
+        }
+      });
     return () => {
       isMounted = false;
     };
-  }, [item.uri, isVideo]);
+  }, [item.uri, isVideo, isAudio]);
 
   const panResponder = useRef(
     PanResponder.create({
@@ -169,7 +205,7 @@ export const SwipeCard: React.FC<SwipeCardProps> = ({
           <Text style={styles.deleteBadgeText}>DELETE</Text>
         </Animated.View>
 
-        {/* Media Preview: Handle Videos Safely Without Crashing Image Decoder */}
+        {/* Media Preview: Strictly safe - NEVER passes raw video/audio streams to Fresco */}
         {isVideo ? (
           <View style={styles.fallbackContainer}>
             {thumbUri ? (
@@ -184,11 +220,37 @@ export const SwipeCard: React.FC<SwipeCardProps> = ({
             </View>
             <Text style={styles.fallbackText}>WhatsApp Video</Text>
             <Text style={styles.fallbackSubtext}>{item.name}</Text>
-            {item.duration ? (
-              <Text style={styles.videoDurationLabel}>
-                {MediaDiscoveryService.formatDuration(item.duration)} • {MediaDiscoveryService.formatBytes(item.size)}
-              </Text>
-            ) : null}
+            <Text style={styles.videoDurationLabel}>
+              {item.duration ? `${MediaDiscoveryService.formatDuration(item.duration)} • ` : ''}
+              {MediaDiscoveryService.formatBytes(item.size)}
+            </Text>
+          </View>
+        ) : isAudio ? (
+          <View style={styles.fallbackContainer}>
+            <View style={styles.videoPosterCircle}>
+              <Text style={styles.playIconLarge}>🎙️</Text>
+            </View>
+            <Text style={styles.fallbackText}>Voice Note / Audio</Text>
+            <Text style={styles.fallbackSubtext}>{item.name}</Text>
+            <Text style={styles.videoDurationLabel}>
+              {MediaDiscoveryService.formatBytes(item.size)}
+            </Text>
+          </View>
+        ) : isSticker ? (
+          <View style={styles.fallbackContainer}>
+            {thumbUri ? (
+              <Image
+                source={{ uri: thumbUri }}
+                style={[styles.image, { width: DECK_IMAGE_WIDTH, height: DECK_IMAGE_HEIGHT }]}
+                resizeMode="contain"
+              />
+            ) : (
+              <>
+                <Text style={styles.fallbackIcon}>✨</Text>
+                <Text style={styles.fallbackText}>WhatsApp Sticker</Text>
+                <Text style={styles.fallbackSubtext}>{item.name}</Text>
+              </>
+            )}
           </View>
         ) : imageError ? (
           <View style={styles.fallbackContainer}>
@@ -196,14 +258,19 @@ export const SwipeCard: React.FC<SwipeCardProps> = ({
             <Text style={styles.fallbackText}>Preview Unavailable</Text>
             <Text style={styles.fallbackSubtext}>{item.name}</Text>
           </View>
-        ) : (
+        ) : thumbUri ? (
           <Image
-            source={{ uri: thumbUri || item.uri }}
+            source={{ uri: thumbUri }}
             style={[styles.image, { width: DECK_IMAGE_WIDTH, height: DECK_IMAGE_HEIGHT }]}
             resizeMode="cover"
-            resizeMethod="resize"
             onError={() => setImageError(true)}
           />
+        ) : (
+          <View style={styles.fallbackContainer}>
+            <ActivityIndicator size="small" color="#FFFFFF" style={{ marginBottom: 12 }} />
+            <Text style={styles.fallbackText}>Loading...</Text>
+            <Text style={styles.fallbackSubtext}>{item.name}</Text>
+          </View>
         )}
 
         {/* Video Play Indicator */}

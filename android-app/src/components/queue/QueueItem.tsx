@@ -13,6 +13,15 @@ interface QueueItemProps {
   onPressPreview: (item: MediaItem) => void;
 }
 
+const VIDEO_EXTENSIONS = new Set([
+  'mp4', '3gp', '3gpp', '3g2', 'mkv', 'mov', 'avi', 'webm',
+  'm4v', 'wmv', 'flv', 'ts', 'm2ts', 'vob', 'ogv', 'divx'
+]);
+
+const AUDIO_EXTENSIONS = new Set([
+  'opus', 'm4a', 'aac', 'mp3', 'ogg', 'amr', 'wav', 'flac', 'wma'
+]);
+
 export const QueueItem: React.FC<QueueItemProps> = ({
   item,
   isSelected,
@@ -22,15 +31,27 @@ export const QueueItem: React.FC<QueueItemProps> = ({
   const [thumbUri, setThumbUri] = useState<string | null>(null);
 
   const lowerName = (item.name || '').toLowerCase();
+  const lowerPath = (item.relativePath || '').toLowerCase();
   const lowerMime = (item.mimeType || '').toLowerCase();
+  const ext = item.extension || lowerName.split('.').pop() || '';
+
   const isVideo =
     item.mediaType === 'video' ||
     lowerMime.startsWith('video/') ||
-    lowerName.endsWith('.mp4') ||
-    lowerName.endsWith('.3gp') ||
-    lowerName.endsWith('.mkv') ||
-    lowerName.endsWith('.mov') ||
-    lowerName.endsWith('.avi');
+    VIDEO_EXTENSIONS.has(ext) ||
+    lowerName.startsWith('vid-') ||
+    lowerName.startsWith('video-') ||
+    lowerPath.includes('video') ||
+    lowerPath.includes('animated gifs');
+
+  const isAudio =
+    item.mediaType === 'audio' ||
+    lowerMime.startsWith('audio/') ||
+    AUDIO_EXTENSIONS.has(ext) ||
+    lowerName.startsWith('ptt-') ||
+    lowerName.startsWith('aud-') ||
+    lowerPath.includes('audio') ||
+    lowerPath.includes('voice notes');
 
   useEffect(() => {
     let isMounted = true;
@@ -72,8 +93,14 @@ export const QueueItem: React.FC<QueueItemProps> = ({
           <View style={[styles.thumbnail, styles.videoPlaceholder]}>
             <Text style={styles.videoPlaceholderIcon}>▶</Text>
           </View>
+        ) : isAudio ? (
+          <View style={[styles.thumbnail, styles.videoPlaceholder]}>
+            <Text style={styles.videoPlaceholderIcon}>🎙️</Text>
+          </View>
         ) : (
-          <Image source={{ uri: item.uri }} style={styles.thumbnail} resizeMode="cover" resizeMethod="resize" />
+          <View style={[styles.thumbnail, styles.videoPlaceholder]}>
+            <Text style={styles.videoPlaceholderIcon}>🖼️</Text>
+          </View>
         )}
         {isVideo && (
           <View style={styles.videoBadge}>

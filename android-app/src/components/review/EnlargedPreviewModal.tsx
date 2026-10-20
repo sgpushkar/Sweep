@@ -21,6 +21,15 @@ interface EnlargedPreviewModalProps {
   onClose: () => void;
 }
 
+const VIDEO_EXTENSIONS = new Set([
+  'mp4', '3gp', '3gpp', '3g2', 'mkv', 'mov', 'avi', 'webm',
+  'm4v', 'wmv', 'flv', 'ts', 'm2ts', 'vob', 'ogv', 'divx'
+]);
+
+const AUDIO_EXTENSIONS = new Set([
+  'opus', 'm4a', 'aac', 'mp3', 'ogg', 'amr', 'wav', 'flac', 'wma'
+]);
+
 export const EnlargedPreviewModal: React.FC<EnlargedPreviewModalProps> = ({
   item,
   visible,
@@ -29,15 +38,27 @@ export const EnlargedPreviewModal: React.FC<EnlargedPreviewModalProps> = ({
   const [thumbUri, setThumbUri] = useState<string | null>(null);
 
   const lowerName = (item?.name || '').toLowerCase();
+  const lowerPath = (item?.relativePath || '').toLowerCase();
   const lowerMime = (item?.mimeType || '').toLowerCase();
+  const ext = item?.extension || lowerName.split('.').pop() || '';
+
   const isVideo =
     item?.mediaType === 'video' ||
     lowerMime.startsWith('video/') ||
-    lowerName.endsWith('.mp4') ||
-    lowerName.endsWith('.3gp') ||
-    lowerName.endsWith('.mkv') ||
-    lowerName.endsWith('.mov') ||
-    lowerName.endsWith('.avi');
+    VIDEO_EXTENSIONS.has(ext) ||
+    lowerName.startsWith('vid-') ||
+    lowerName.startsWith('video-') ||
+    lowerPath.includes('video') ||
+    lowerPath.includes('animated gifs');
+
+  const isAudio =
+    item?.mediaType === 'audio' ||
+    lowerMime.startsWith('audio/') ||
+    AUDIO_EXTENSIONS.has(ext) ||
+    lowerName.startsWith('ptt-') ||
+    lowerName.startsWith('aud-') ||
+    lowerPath.includes('audio') ||
+    lowerPath.includes('voice notes');
 
   useEffect(() => {
     let isMounted = true;
@@ -58,7 +79,8 @@ export const EnlargedPreviewModal: React.FC<EnlargedPreviewModalProps> = ({
   if (!item) return null;
 
   const handleOpenNative = () => {
-    WhatsAppCleanerNativeBridge.openMedia(item.uri, item.mimeType || (isVideo ? 'video/*' : 'image/*'));
+    const fallbackMime = isVideo ? 'video/*' : isAudio ? 'audio/*' : 'image/*';
+    WhatsAppCleanerNativeBridge.openMedia(item.uri, item.mimeType || fallbackMime);
   };
 
   return (
@@ -110,18 +132,41 @@ export const EnlargedPreviewModal: React.FC<EnlargedPreviewModalProps> = ({
                 <Text style={styles.openNativePillText}>Open in Video Player ↗</Text>
               </View>
             </TouchableOpacity>
+          ) : isAudio ? (
+            <TouchableOpacity
+              style={styles.videoInspectBox}
+              activeOpacity={0.85}
+              onPress={handleOpenNative}
+            >
+              <View style={styles.videoInspectCircle}>
+                <Text style={styles.videoInspectPlayIcon}>🎙️</Text>
+              </View>
+              <Text style={styles.videoInspectTitle}>{item.name}</Text>
+              <Text style={styles.videoInspectMeta}>
+                {MediaDiscoveryService.formatBytes(item.size)}
+              </Text>
+              <View style={styles.openNativePill}>
+                <Text style={styles.openNativePillText}>Play Audio in Player ↗</Text>
+              </View>
+            </TouchableOpacity>
           ) : (
             <TouchableOpacity
               style={styles.imageBox}
               activeOpacity={0.9}
               onPress={handleOpenNative}
             >
-              <Image
-                source={{ uri: thumbUri || item.uri }}
-                style={styles.image}
-                resizeMode="contain"
-                resizeMethod="resize"
-              />
+              {thumbUri ? (
+                <Image
+                  source={{ uri: thumbUri }}
+                  style={styles.image}
+                  resizeMode="contain"
+                />
+              ) : (
+                <View style={styles.videoInspectBox}>
+                  <Text style={styles.videoInspectPlayIcon}>🖼️</Text>
+                  <Text style={styles.videoInspectTitle}>{item.name}</Text>
+                </View>
+              )}
               <View style={styles.imagePill}>
                 <Text style={styles.imagePillText}>Tap for Full Resolution ↗</Text>
               </View>

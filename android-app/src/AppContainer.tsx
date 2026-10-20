@@ -184,6 +184,16 @@ const MainNavigator: React.FC = () => {
     currentScreen === 'storage' ||
     currentScreen === 'settings';
 
+  useEffect(() => {
+    StatusBar.setBarStyle('light-content');
+    if (Platform.OS === 'android') {
+      try {
+        (StatusBar as any).setBackgroundColor?.('#09090b', true);
+        (StatusBar as any).setTranslucent?.(false);
+      } catch {}
+    }
+  }, []);
+
   return (
     <SafeAreaView style={styles.root}>
       <StatusBar barStyle="light-content" />
