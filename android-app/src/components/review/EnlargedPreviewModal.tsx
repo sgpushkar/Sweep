@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Modal,
   View,
@@ -12,6 +12,7 @@ import {
 import { MediaItem } from '../../types/media';
 import { theme } from '../../theme/theme';
 import { MediaDiscoveryService } from '../../services/mediaDiscovery';
+import { WhatsAppCleanerNativeBridge } from '../../native/WhatsAppCleanerNative';
 import { Badge } from '../common/Badge';
 
 interface EnlargedPreviewModalProps {
@@ -25,18 +26,40 @@ export const EnlargedPreviewModal: React.FC<EnlargedPreviewModalProps> = ({
   visible,
   onClose,
 }) => {
-  if (!item) return null;
+  const [thumbUri, setThumbUri] = useState<string | null>(null);
 
-  const lowerName = (item.name || '').toLowerCase();
-  const lowerMime = (item.mimeType || '').toLowerCase();
+  const lowerName = (item?.name || '').toLowerCase();
+  const lowerMime = (item?.mimeType || '').toLowerCase();
   const isVideo =
-    item.mediaType === 'video' ||
+    item?.mediaType === 'video' ||
     lowerMime.startsWith('video/') ||
     lowerName.endsWith('.mp4') ||
     lowerName.endsWith('.3gp') ||
     lowerName.endsWith('.mkv') ||
     lowerName.endsWith('.mov') ||
     lowerName.endsWith('.avi');
+
+  useEffect(() => {
+    let isMounted = true;
+    if (item?.uri) {
+      WhatsAppCleanerNativeBridge.getThumbnail(item.uri, isVideo)
+        .then(thumb => {
+          if (isMounted && thumb) {
+            setThumbUri(thumb);
+          }
+        })
+        .catch(() => {});
+    }
+    return () => {
+      isMounted = false;
+    };
+  }, [item?.uri, isVideo]);
+
+  if (!item) return null;
+
+  const handleOpenNative = () => {
+    WhatsAppCleanerNativeBridge.openMedia(item.uri, item.mimeType || (isVideo ? 'video/*' : 'image/*'));
+  };
 
   return (
     <Modal
@@ -63,7 +86,18 @@ export const EnlargedPreviewModal: React.FC<EnlargedPreviewModalProps> = ({
         {/* Media Preview Box */}
         <View style={styles.mediaBox}>
           {isVideo ? (
-            <View style={styles.videoInspectBox}>
+            <TouchableOpacity
+              style={styles.videoInspectBox}
+              activeOpacity={0.85}
+              onPress={handleOpenNative}
+            >
+              {thumbUri ? (
+                <Image
+                  source={{ uri: thumbUri }}
+                  style={[StyleSheet.absoluteFill, { opacity: 0.45 }]}
+                  resizeMode="cover"
+                />
+              ) : null}
               <View style={styles.videoInspectCircle}>
                 <Text style={styles.videoInspectPlayIcon}>▶</Text>
               </View>
@@ -72,14 +106,26 @@ export const EnlargedPreviewModal: React.FC<EnlargedPreviewModalProps> = ({
                 {MediaDiscoveryService.formatBytes(item.size)}
                 {item.duration ? ` • ${MediaDiscoveryService.formatDuration(item.duration)}` : ''}
               </Text>
-            </View>
+              <View style={styles.openNativePill}>
+                <Text style={styles.openNativePillText}>Open in Video Player ↗</Text>
+              </View>
+            </TouchableOpacity>
           ) : (
-            <Image
-              source={{ uri: item.uri }}
-              style={styles.image}
-              resizeMode="contain"
-              resizeMethod="resize"
-            />
+            <TouchableOpacity
+              style={styles.imageBox}
+              activeOpacity={0.9}
+              onPress={handleOpenNative}
+            >
+              <Image
+                source={{ uri: thumbUri || item.uri }}
+                style={styles.image}
+                resizeMode="contain"
+                resizeMethod="resize"
+              />
+              <View style={styles.imagePill}>
+                <Text style={styles.imagePillText}>Tap for Full Resolution ↗</Text>
+              </View>
+            </TouchableOpacity>
           )}
         </View>
 
@@ -91,7 +137,7 @@ export const EnlargedPreviewModal: React.FC<EnlargedPreviewModalProps> = ({
               <Text style={styles.metaLabel}>Type</Text>
               <Badge
                 label={item.mediaType.toUpperCase()}
-                variant={item.mediaType === 'video' ? 'info' : 'neutral'}
+                variant="neutral"
                 size="sm"
               />
             </View>
@@ -223,9 +269,43 @@ const styles = StyleSheet.create({
     color: theme.colors.accent,
     fontWeight: '600',
   },
+  imageBox: {
+    width: '100%',
+    height: '100%',
+    alignItems: 'center',
+    justifyContent: 'center',
+    position: 'relative',
+  },
   image: {
     width: '100%',
     height: '100%',
+  },
+  imagePill: {
+    position: 'absolute',
+    bottom: 12,
+    backgroundColor: 'rgba(0, 0, 0, 0.75)',
+    paddingHorizontal: theme.spacing.md,
+    paddingVertical: 6,
+    borderRadius: theme.radii.full,
+    borderWidth: 1,
+    borderColor: '#383840',
+  },
+  imagePillText: {
+    ...theme.typography.caption,
+    color: '#E4E4E7',
+    fontWeight: '600',
+  },
+  openNativePill: {
+    marginTop: theme.spacing.lg,
+    backgroundColor: '#FFFFFF',
+    paddingHorizontal: theme.spacing.lg,
+    paddingVertical: 10,
+    borderRadius: theme.radii.full,
+  },
+  openNativePillText: {
+    ...theme.typography.caption,
+    color: '#09090B',
+    fontWeight: '700',
   },
   drawer: {
     height: 240,

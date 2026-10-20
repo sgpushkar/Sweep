@@ -329,26 +329,26 @@ const styles = StyleSheet.create({
   },
   keepOverlay: {
     left: 24,
-    backgroundColor: 'rgba(16, 185, 129, 0.25)',
-    borderColor: theme.colors.accent,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    borderColor: '#FFFFFF',
     transform: [{ rotate: '-12deg' }],
   },
   keepBadgeText: {
     fontSize: 22,
     fontWeight: '800',
-    color: theme.colors.accent,
+    color: '#FFFFFF',
     letterSpacing: 2,
   },
   deleteOverlay: {
     right: 24,
-    backgroundColor: 'rgba(239, 68, 68, 0.25)',
-    borderColor: theme.colors.danger,
+    backgroundColor: 'rgba(0, 0, 0, 0.75)',
+    borderColor: '#71717A',
     transform: [{ rotate: '12deg' }],
   },
   deleteBadgeText: {
     fontSize: 22,
     fontWeight: '800',
-    color: theme.colors.danger,
+    color: '#D4D4D8',
     letterSpacing: 2,
   },
   videoIndicator: {

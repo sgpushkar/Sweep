@@ -308,8 +308,8 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.borderSubtle,
   },
   queueAlertCard: {
-    backgroundColor: 'rgba(239, 68, 68, 0.08)',
-    borderColor: 'rgba(239, 68, 68, 0.3)',
+    backgroundColor: '#18181b',
+    borderColor: '#27272a',
     marginBottom: theme.spacing.lg,
     padding: theme.spacing.md,
   },
@@ -324,7 +324,7 @@ const styles = StyleSheet.create({
   queueAlertTitle: {
     ...theme.typography.body,
     fontWeight: '700',
-    color: theme.colors.dangerLight,
+    color: '#ffffff',
   },
   queueAlertSubtitle: {
     ...theme.typography.caption,
@@ -332,7 +332,7 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   queueAlertButton: {
-    backgroundColor: theme.colors.danger,
+    backgroundColor: '#ffffff',
     paddingHorizontal: theme.spacing.md,
     paddingVertical: 6,
     borderRadius: theme.radii.full,
@@ -340,7 +340,7 @@ const styles = StyleSheet.create({
   queueAlertButtonText: {
     ...theme.typography.caption,
     fontWeight: '700',
-    color: '#FFF',
+    color: '#09090b',
   },
   primaryActionBox: {
     marginBottom: theme.spacing.xl,

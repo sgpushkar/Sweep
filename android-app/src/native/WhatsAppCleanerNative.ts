@@ -88,6 +88,24 @@ export class WhatsAppCleanerNativeBridge {
     }
   }
 
+  static async prefetchThumbnails(items: Array<{ uri: string; isVideo: boolean }>): Promise<boolean> {
+    if (!this.isAvailable()) return false;
+    try {
+      return await WhatsAppCleanerNative.prefetchThumbnails(items);
+    } catch {
+      return false;
+    }
+  }
+
+  static async openMedia(uri: string, mimeType: string = ''): Promise<boolean> {
+    if (!this.isAvailable()) return false;
+    try {
+      return await WhatsAppCleanerNative.openMedia(uri, mimeType);
+    } catch {
+      return false;
+    }
+  }
+
   // ---------------------------------------------------------------------------
   // Deletion Authorization
   // ---------------------------------------------------------------------------

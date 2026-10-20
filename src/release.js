@@ -7,7 +7,7 @@ export const RELEASE={
   size:"50.7 MB",
   date:"2026-10-21",
   minAndroid:"Android 8.0 (API 26)",
-  sha256:"6f2628d5a4afedc4dcb1eb6a6a0ffdbd6635b759f661bf50f281056f07bc9116",
+  sha256:"f4d1928975aac0790514112050f7d97ef1543a75a4716319f3b618c98facaaf4",
   notes:[
     "Initial production release of WhatsApp Media Cleaner",
     "Real Android MediaStore image and video discovery",

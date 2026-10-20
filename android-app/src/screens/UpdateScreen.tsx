@@ -356,13 +356,13 @@ const styles = StyleSheet.create({
     height: 44,
   },
   errorCard: {
-    backgroundColor: 'rgba(239, 68, 68, 0.08)',
-    borderColor: theme.colors.danger,
+    backgroundColor: '#18181b',
+    borderColor: '#27272a',
     marginBottom: theme.spacing.md,
   },
   errorTitle: {
     ...theme.typography.h3,
-    color: theme.colors.dangerLight,
+    color: '#e4e4e7',
     marginBottom: 4,
   },
   errorMessage: {

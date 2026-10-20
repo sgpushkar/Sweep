@@ -118,21 +118,25 @@ const styles = StyleSheet.create({
     elevation: 4,
   },
   deleteButton: {
-    backgroundColor: theme.colors.danger,
+    backgroundColor: '#1c1c20',
+    borderWidth: 1,
+    borderColor: '#383840',
   },
   keepButton: {
-    backgroundColor: theme.colors.accent,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#FFFFFF',
   },
   deleteIcon: {
     fontSize: 18,
     fontWeight: '800',
-    color: '#FFFFFF',
+    color: '#E4E4E7',
     marginRight: 6,
   },
   keepIcon: {
     fontSize: 18,
     fontWeight: '800',
-    color: '#090B0E',
+    color: '#09090B',
     marginRight: 6,
   },
   actionLabel: {
@@ -141,10 +145,10 @@ const styles = StyleSheet.create({
     letterSpacing: 0.8,
   },
   deleteText: {
-    color: '#FFFFFF',
+    color: '#E4E4E7',
   },
   keepText: {
-    color: '#09090b',
+    color: '#09090B',
   },
   smallButton: {
     width: 52,

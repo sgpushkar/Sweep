@@ -129,14 +129,16 @@ const styles = StyleSheet.create({
     marginRight: theme.spacing.sm,
   },
   primaryContainer: {
-    backgroundColor: theme.colors.accent,
+    backgroundColor: '#FFFFFF',
   },
   primaryText: {
-    color: '#090B0E',
+    color: '#09090B',
     fontWeight: '700',
   },
   dangerContainer: {
-    backgroundColor: theme.colors.danger,
+    backgroundColor: '#27272A',
+    borderWidth: 1,
+    borderColor: '#3F3F46',
   },
   dangerText: {
     color: '#FFFFFF',

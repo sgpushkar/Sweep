@@ -14,6 +14,8 @@ import android.provider.DocumentsContract
 import android.provider.MediaStore
 import android.provider.Settings
 import android.graphics.Bitmap
+import android.graphics.BitmapFactory
+import android.media.MediaMetadataRetriever
 import android.util.Size
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
@@ -866,6 +868,8 @@ class WhatsAppMediaCleanerModule(private val reactContext: ReactApplicationConte
                 }
 
                 var bitmap: Bitmap? = null
+
+                // Tier 1: Android Q+ ContentResolver loadThumbnail
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
                     try {
                         bitmap = reactContext.contentResolver.loadThumbnail(uri, Size(512, 512), null)
@@ -874,6 +878,24 @@ class WhatsAppMediaCleanerModule(private val reactContext: ReactApplicationConte
                     }
                 }
 
+                // Tier 2: MediaMetadataRetriever for Any Video Format (MP4, 3GP, MKV, MOV, WebM, etc.)
+                if (bitmap == null && isVideo) {
+                    try {
+                        val retriever = MediaMetadataRetriever()
+                        if (uri.scheme == "file") {
+                            retriever.setDataSource(uri.path)
+                        } else {
+                            retriever.setDataSource(reactContext, uri)
+                        }
+                        bitmap = retriever.getFrameAtTime(1000000, MediaMetadataRetriever.OPTION_CLOSEST_SYNC)
+                            ?: retriever.getFrameAtTime()
+                        retriever.release()
+                    } catch (e: Exception) {
+                        bitmap = null
+                    }
+                }
+
+                // Tier 3: MediaStore Thumbnail Queries (Pre-Q or MediaStore indexed files)
                 if (bitmap == null) {
                     try {
                         val id = ContentUris.parseId(uri)
@@ -897,11 +919,58 @@ class WhatsAppMediaCleanerModule(private val reactContext: ReactApplicationConte
                     }
                 }
 
-                if (bitmap != null) {
-                    FileOutputStream(thumbFile).use { out ->
-                        bitmap.compress(Bitmap.CompressFormat.JPEG, 80, out)
+                // Tier 4: For High-Res Photos - In-stream Downsampled BitmapFactory decode with RGB_565 (Never OOMs!)
+                if (bitmap == null && !isVideo) {
+                    try {
+                        reactContext.contentResolver.openInputStream(uri)?.use { stream ->
+                            val boundsOptions = BitmapFactory.Options().apply {
+                                inJustDecodeBounds = true
+                            }
+                            BitmapFactory.decodeStream(stream, null, boundsOptions)
+
+                            val reqWidth = 512
+                            val reqHeight = 512
+                            var inSampleSize = 1
+                            if (boundsOptions.outHeight > reqHeight || boundsOptions.outWidth > reqWidth) {
+                                val halfHeight = boundsOptions.outHeight / 2
+                                val halfWidth = boundsOptions.outWidth / 2
+                                while ((halfHeight / inSampleSize) >= reqHeight && (halfWidth / inSampleSize) >= reqWidth) {
+                                    inSampleSize *= 2
+                                }
+                            }
+
+                            reactContext.contentResolver.openInputStream(uri)?.use { decodeStream ->
+                                val decodeOptions = BitmapFactory.Options().apply {
+                                    this.inSampleSize = inSampleSize
+                                    inPreferredConfig = Bitmap.Config.RGB_565
+                                }
+                                bitmap = BitmapFactory.decodeStream(decodeStream, null, decodeOptions)
+                            }
+                        }
+                    } catch (e: Exception) {
+                        bitmap = null
                     }
-                    bitmap.recycle()
+                }
+
+                val loadedBitmap = bitmap
+                if (loadedBitmap != null) {
+                    val finalBitmap = if (loadedBitmap.width > 512 || loadedBitmap.height > 512) {
+                        val aspect = loadedBitmap.width.toFloat() / loadedBitmap.height.toFloat()
+                        val targetW = if (aspect >= 1f) 512 else (512 * aspect).toInt()
+                        val targetH = if (aspect >= 1f) (512 / aspect).toInt() else 512
+                        val scaled = Bitmap.createScaledBitmap(loadedBitmap, Math.max(1, targetW), Math.max(1, targetH), true)
+                        if (scaled != loadedBitmap) {
+                            loadedBitmap.recycle()
+                        }
+                        scaled
+                    } else {
+                        loadedBitmap
+                    }
+
+                    FileOutputStream(thumbFile).use { out ->
+                        finalBitmap.compress(Bitmap.CompressFormat.JPEG, 80, out)
+                    }
+                    finalBitmap.recycle()
                     promise.resolve("file://${thumbFile.absolutePath}")
                 } else {
                     promise.resolve(null)
@@ -909,6 +978,70 @@ class WhatsAppMediaCleanerModule(private val reactContext: ReactApplicationConte
             } catch (e: Exception) {
                 promise.resolve(null)
             }
+        }
+    }
+
+    @ReactMethod
+    fun prefetchThumbnails(items: ReadableArray, promise: Promise) {
+        moduleScope.launch {
+            try {
+                val thumbsDir = File(reactContext.cacheDir, "thumbs")
+                if (!thumbsDir.exists()) thumbsDir.mkdirs()
+
+                for (i in 0 until items.size()) {
+                    val item = items.getMap(i) ?: continue
+                    val uriStr = item.getString("uri") ?: continue
+                    val isVid = item.getBoolean("isVideo")
+                    val uri = Uri.parse(uriStr)
+                    val cleanSeg = uri.lastPathSegment?.replace(Regex("[^a-zA-Z0-9_-]"), "_") ?: "tmp"
+                    val thumbFile = File(thumbsDir, "th_${cleanSeg}.jpg")
+                    if (thumbFile.exists() && thumbFile.length() > 0) continue
+
+                    var bitmap: Bitmap? = null
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                        try {
+                            bitmap = reactContext.contentResolver.loadThumbnail(uri, Size(512, 512), null)
+                        } catch (e: Exception) {}
+                    }
+                    if (bitmap == null && isVid) {
+                        try {
+                            val retriever = MediaMetadataRetriever()
+                            if (uri.scheme == "file") retriever.setDataSource(uri.path)
+                            else retriever.setDataSource(reactContext, uri)
+                            bitmap = retriever.getFrameAtTime(1000000, MediaMetadataRetriever.OPTION_CLOSEST_SYNC)
+                                ?: retriever.getFrameAtTime()
+                            retriever.release()
+                        } catch (e: Exception) {}
+                    }
+                    val loadedPrefetch = bitmap
+                    if (loadedPrefetch != null) {
+                        FileOutputStream(thumbFile).use { out ->
+                            loadedPrefetch.compress(Bitmap.CompressFormat.JPEG, 80, out)
+                        }
+                        loadedPrefetch.recycle()
+                    }
+                }
+                promise.resolve(true)
+            } catch (e: Exception) {
+                promise.resolve(false)
+            }
+        }
+    }
+
+    @ReactMethod
+    fun openMedia(uriString: String, mimeType: String, promise: Promise) {
+        try {
+            val uri = Uri.parse(uriString)
+            val type = if (mimeType.isNotBlank()) mimeType else "*/*"
+            val intent = Intent(Intent.ACTION_VIEW).apply {
+                setDataAndType(uri, type)
+                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            }
+            reactContext.startActivity(intent)
+            promise.resolve(true)
+        } catch (e: Exception) {
+            promise.reject("OPEN_MEDIA_ERROR", e.message, e)
         }
     }
 

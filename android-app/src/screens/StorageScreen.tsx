@@ -351,8 +351,8 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   queueCard: {
-    backgroundColor: 'rgba(239, 68, 68, 0.08)',
-    borderColor: 'rgba(239, 68, 68, 0.25)',
+    backgroundColor: '#18181b',
+    borderColor: '#27272a',
     padding: theme.spacing.lg,
   },
   queueCardRow: {
@@ -362,7 +362,7 @@ const styles = StyleSheet.create({
   },
   queueLabel: {
     ...theme.typography.label,
-    color: theme.colors.dangerLight,
+    color: '#a1a1aa',
   },
   queueValue: {
     ...theme.typography.h2,
@@ -376,7 +376,7 @@ const styles = StyleSheet.create({
   },
   arrowIcon: {
     fontSize: 24,
-    color: theme.colors.dangerLight,
+    color: '#ffffff',
   },
   sectionHeading: {
     ...theme.typography.h3,
@@ -425,13 +425,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: theme.spacing.md,
     paddingVertical: 4,
     borderRadius: theme.radii.full,
-    backgroundColor: 'rgba(239, 68, 68, 0.15)',
+    backgroundColor: '#27272a',
     borderWidth: 1,
-    borderColor: theme.colors.danger,
+    borderColor: '#3f3f46',
   },
   markDeleteText: {
     ...theme.typography.caption,
-    color: theme.colors.dangerLight,
+    color: '#e4e4e7',
     fontWeight: '700',
   },
   emptyDuplicates: {
@@ -507,8 +507,8 @@ const styles = StyleSheet.create({
     borderColor: theme.colors.borderDefault,
   },
   dupActionBtnMarked: {
-    backgroundColor: 'rgba(239, 68, 68, 0.15)',
-    borderColor: theme.colors.danger,
+    backgroundColor: '#27272a',
+    borderColor: '#3f3f46',
   },
   dupActionText: {
     fontSize: 11,
@@ -516,6 +516,6 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   dupActionTextMarked: {
-    color: theme.colors.dangerLight,
+    color: '#e4e4e7',
   },
 });

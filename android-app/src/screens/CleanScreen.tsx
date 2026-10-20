@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, SafeAreaView } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, StyleSheet } from 'react-native';
 import { theme } from '../theme/theme';
 import { MediaItem, ReviewDecision, ReviewDecisionMap } from '../types/media';
 import { SwipeCard } from '../components/review/SwipeCard';
@@ -8,6 +8,7 @@ import { EnlargedPreviewModal } from '../components/review/EnlargedPreviewModal'
 import { ProgressBar } from '../components/common/ProgressBar';
 import { Button } from '../components/common/Button';
 import { EmptyState } from '../components/common/EmptyState';
+import { WhatsAppCleanerNativeBridge } from '../native/WhatsAppCleanerNative';
 import { useAppNavigation } from '../navigation/NavigationContext';
 
 interface CleanScreenProps {
@@ -35,6 +36,27 @@ export const CleanScreen: React.FC<CleanScreenProps> = ({
 }) => {
   const { navigateTo, navigateTab } = useAppNavigation();
   const [inspectItem, setInspectItem] = useState<MediaItem | null>(null);
+
+  // Pre-warm thumbnail cache for the upcoming 4 items in the deck
+  useEffect(() => {
+    if (!items || items.length === 0) return;
+    const upcoming = items.slice(currentIndex + 1, currentIndex + 5).map(i => {
+      const lowerName = (i.name || '').toLowerCase();
+      const lowerMime = (i.mimeType || '').toLowerCase();
+      const isVideo =
+        i.mediaType === 'video' ||
+        lowerMime.startsWith('video/') ||
+        lowerName.endsWith('.mp4') ||
+        lowerName.endsWith('.3gp') ||
+        lowerName.endsWith('.mkv') ||
+        lowerName.endsWith('.mov') ||
+        lowerName.endsWith('.avi');
+      return { uri: i.uri, isVideo };
+    });
+    if (upcoming.length > 0) {
+      WhatsAppCleanerNativeBridge.prefetchThumbnails(upcoming).catch(() => {});
+    }
+  }, [currentIndex, items]);
 
   const totalCount = items.length;
   const currentItem = items[currentIndex];
@@ -210,17 +232,17 @@ const styles = StyleSheet.create({
   },
   queueNoticeBox: {
     width: '100%',
-    backgroundColor: 'rgba(239, 68, 68, 0.08)',
+    backgroundColor: '#18181b',
     borderRadius: theme.radii.lg,
     padding: theme.spacing.md,
     borderWidth: 1,
-    borderColor: 'rgba(239, 68, 68, 0.2)',
+    borderColor: '#27272a',
     marginBottom: theme.spacing.lg,
     alignItems: 'center',
   },
   queueNoticeText: {
     ...theme.typography.caption,
-    color: theme.colors.dangerLight,
+    color: '#e4e4e7',
     fontWeight: '600',
     marginBottom: theme.spacing.md,
     textAlign: 'center',

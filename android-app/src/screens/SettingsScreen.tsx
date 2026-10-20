@@ -300,13 +300,13 @@ const styles = StyleSheet.create({
     color: theme.colors.textSecondary,
   },
   dangerCard: {
-    backgroundColor: 'rgba(239, 68, 68, 0.05)',
-    borderColor: 'rgba(239, 68, 68, 0.2)',
+    backgroundColor: '#18181b',
+    borderColor: '#27272a',
   },
   dangerTitle: {
     ...theme.typography.body,
     fontWeight: '700',
-    color: theme.colors.dangerLight,
+    color: '#e4e4e7',
   },
   footerText: {
     ...theme.typography.caption,

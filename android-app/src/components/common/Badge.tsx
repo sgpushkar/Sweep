@@ -14,15 +14,15 @@ export const Badge: React.FC<BadgeProps> = ({ label, variant = 'neutral', size =
   const getColors = () => {
     switch (variant) {
       case 'accent':
-        return { bg: theme.colors.accentSubtle, text: theme.colors.accent };
+        return { bg: '#FFFFFF', text: '#09090B' };
       case 'danger':
-        return { bg: theme.colors.dangerSubtle, text: theme.colors.danger };
+        return { bg: '#27272A', text: '#E4E4E7' };
       case 'warning':
-        return { bg: theme.colors.warningSubtle, text: theme.colors.warning };
+        return { bg: '#18181B', text: '#A1A1AA' };
       case 'info':
-        return { bg: theme.colors.infoSubtle, text: theme.colors.info };
+        return { bg: '#1F1F23', text: '#D4D4D8' };
       default:
-        return { bg: theme.colors.surfaceElevated, text: theme.colors.textSecondary };
+        return { bg: '#18181B', text: '#A1A1AA' };
     }
   };
 

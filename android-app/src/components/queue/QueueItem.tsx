@@ -1,8 +1,9 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, Image, StyleSheet, TouchableOpacity } from 'react-native';
 import { MediaItem } from '../../types/media';
 import { theme } from '../../theme/theme';
 import { MediaDiscoveryService } from '../../services/mediaDiscovery';
+import { WhatsAppCleanerNativeBridge } from '../../native/WhatsAppCleanerNative';
 import { Badge } from '../common/Badge';
 
 interface QueueItemProps {
@@ -18,6 +19,33 @@ export const QueueItem: React.FC<QueueItemProps> = ({
   onToggleSelect,
   onPressPreview,
 }) => {
+  const [thumbUri, setThumbUri] = useState<string | null>(null);
+
+  const lowerName = (item.name || '').toLowerCase();
+  const lowerMime = (item.mimeType || '').toLowerCase();
+  const isVideo =
+    item.mediaType === 'video' ||
+    lowerMime.startsWith('video/') ||
+    lowerName.endsWith('.mp4') ||
+    lowerName.endsWith('.3gp') ||
+    lowerName.endsWith('.mkv') ||
+    lowerName.endsWith('.mov') ||
+    lowerName.endsWith('.avi');
+
+  useEffect(() => {
+    let isMounted = true;
+    WhatsAppCleanerNativeBridge.getThumbnail(item.uri, isVideo)
+      .then(thumb => {
+        if (isMounted && thumb) {
+          setThumbUri(thumb);
+        }
+      })
+      .catch(() => {});
+    return () => {
+      isMounted = false;
+    };
+  }, [item.uri, isVideo]);
+
   return (
     <View style={[styles.container, !isSelected && styles.deselectedContainer]}>
       {/* Checkbox Toggle */}
@@ -38,8 +66,16 @@ export const QueueItem: React.FC<QueueItemProps> = ({
         onPress={() => onPressPreview(item)}
         activeOpacity={0.8}
       >
-        <Image source={{ uri: item.uri }} style={styles.thumbnail} />
-        {item.mediaType === 'video' && (
+        {thumbUri ? (
+          <Image source={{ uri: thumbUri }} style={styles.thumbnail} resizeMode="cover" />
+        ) : isVideo ? (
+          <View style={[styles.thumbnail, styles.videoPlaceholder]}>
+            <Text style={styles.videoPlaceholderIcon}>▶</Text>
+          </View>
+        ) : (
+          <Image source={{ uri: item.uri }} style={styles.thumbnail} resizeMode="cover" resizeMethod="resize" />
+        )}
+        {isVideo && (
           <View style={styles.videoBadge}>
             <Text style={styles.videoIcon}>▶</Text>
           </View>
@@ -65,7 +101,7 @@ export const QueueItem: React.FC<QueueItemProps> = ({
       {/* Type Badge */}
       <Badge
         label={item.mediaType.toUpperCase()}
-        variant={item.mediaType === 'video' ? 'info' : 'neutral'}
+        variant="neutral"
         size="sm"
       />
     </View>
@@ -100,20 +136,20 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   checkboxActive: {
-    backgroundColor: theme.colors.danger,
-    borderColor: theme.colors.danger,
+    backgroundColor: '#FFFFFF',
+    borderColor: '#FFFFFF',
   },
   checkmark: {
     fontSize: 12,
     fontWeight: '800',
-    color: '#FFF',
+    color: '#09090B',
   },
   thumbnailContainer: {
     width: 48,
     height: 48,
     borderRadius: theme.radii.sm,
     overflow: 'hidden',
-    backgroundColor: '#000',
+    backgroundColor: '#121214',
     position: 'relative',
     marginRight: theme.spacing.md,
   },
@@ -121,11 +157,20 @@ const styles = StyleSheet.create({
     width: '100%',
     height: '100%',
   },
+  videoPlaceholder: {
+    backgroundColor: '#18181b',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  videoPlaceholderIcon: {
+    color: '#a1a1aa',
+    fontSize: 14,
+  },
   videoBadge: {
     position: 'absolute',
     bottom: 2,
     right: 2,
-    backgroundColor: 'rgba(0,0,0,0.6)',
+    backgroundColor: 'rgba(0,0,0,0.7)',
     borderRadius: 4,
     paddingHorizontal: 3,
   },

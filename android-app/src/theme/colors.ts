@@ -1,43 +1,43 @@
 export const colors = {
-  // Pure Minimalist Obsidian Backgrounds (matching landing page #09090b)
+  // Pure Monochromatic Obsidian & Charcoal Backgrounds
   background: '#09090b',
-  backgroundElevated: '#121216',
-  surface: '#121216',
-  surfaceElevated: '#18181e',
-  surfaceHighlight: '#22222a',
+  backgroundElevated: '#121214',
+  surface: '#121214',
+  surfaceElevated: '#18181b',
+  surfaceHighlight: '#222225',
 
-  // Hairline Minimalist Borders
-  borderSubtle: '#1e1e24',
+  // Hairline Minimalist Greyscale Borders
+  borderSubtle: '#18181b',
   borderDefault: '#27272a',
-  borderFocus: '#10b981',
+  borderFocus: '#ffffff',
 
   // Editorial High-Legibility Typography
-  textPrimary: '#f4f4f5',
+  textPrimary: '#ffffff',
   textSecondary: '#a1a1aa',
   textMuted: '#71717a',
   textDisabled: '#3f3f46',
 
-  // Clean Emerald Accent (matching web --accent: #10b981)
-  accent: '#10b981',
-  accentDark: '#059669',
-  accentLight: '#34d399',
-  accentSubtle: 'rgba(16, 185, 129, 0.12)',
+  // Monochromatic White & Bright Silver Accent
+  accent: '#ffffff',
+  accentDark: '#e4e4e7',
+  accentLight: '#ffffff',
+  accentSubtle: 'rgba(255, 255, 255, 0.12)',
 
-  // Clean Minimal Red
-  danger: '#ef4444',
-  dangerDark: '#dc2626',
-  dangerLight: '#f87171',
-  dangerSubtle: 'rgba(239, 68, 68, 0.12)',
+  // Monochromatic Charcoal Danger / Deletion Actions
+  danger: '#27272a',
+  dangerDark: '#18181b',
+  dangerLight: '#e4e4e7',
+  dangerSubtle: 'rgba(255, 255, 255, 0.08)',
 
-  // Warning & Caution
-  warning: '#f59e0b',
-  warningSubtle: 'rgba(245, 158, 11, 0.12)',
+  // Warning & Caution (Muted Zinc)
+  warning: '#a1a1aa',
+  warningSubtle: 'rgba(255, 255, 255, 0.06)',
 
-  // Info & Neutral
-  info: '#3b82f6',
-  infoSubtle: 'rgba(59, 130, 246, 0.12)',
+  // Info & Neutral (Light Zinc)
+  info: '#d4d4d8',
+  infoSubtle: 'rgba(255, 255, 255, 0.08)',
 
   // Overlays & Deep Shadows
-  overlay: 'rgba(9, 9, 11, 0.92)',
-  cardShadow: 'rgba(0, 0, 0, 0.6)',
+  overlay: 'rgba(0, 0, 0, 0.95)',
+  cardShadow: 'rgba(0, 0, 0, 0.8)',
 };
