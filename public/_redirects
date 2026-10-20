@@ -1,2 +1,2 @@
-# Netlify: custom 404 for unknown paths
-/*  /404.html  404
+/releases/*  /releases/:splat  200!
+/*           /index.html       200
