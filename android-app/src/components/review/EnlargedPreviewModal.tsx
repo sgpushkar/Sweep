@@ -51,11 +51,25 @@ export const EnlargedPreviewModal: React.FC<EnlargedPreviewModalProps> = ({
 
         {/* Media Preview Box */}
         <View style={styles.mediaBox}>
-          <Image
-            source={{ uri: item.uri }}
-            style={styles.image}
-            resizeMode="contain"
-          />
+          {item.mediaType === 'video' ? (
+            <View style={styles.videoInspectBox}>
+              <View style={styles.videoInspectCircle}>
+                <Text style={styles.videoInspectPlayIcon}>▶</Text>
+              </View>
+              <Text style={styles.videoInspectTitle}>{item.name}</Text>
+              <Text style={styles.videoInspectMeta}>
+                {MediaDiscoveryService.formatBytes(item.size)}
+                {item.duration ? ` • ${MediaDiscoveryService.formatDuration(item.duration)}` : ''}
+              </Text>
+            </View>
+          ) : (
+            <Image
+              source={{ uri: item.uri }}
+              style={styles.image}
+              resizeMode="contain"
+              resizeMethod="resize"
+            />
+          )}
         </View>
 
         {/* Metadata Drawer */}
@@ -164,6 +178,39 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     padding: theme.spacing.md,
+  },
+  videoInspectBox: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: theme.spacing.xl,
+  },
+  videoInspectCircle: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    borderWidth: 2,
+    borderColor: 'rgba(255, 255, 255, 0.25)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: theme.spacing.lg,
+  },
+  videoInspectPlayIcon: {
+    fontSize: 32,
+    color: '#FFF',
+    marginLeft: 6,
+  },
+  videoInspectTitle: {
+    ...theme.typography.body,
+    fontWeight: '700',
+    color: theme.colors.textPrimary,
+    textAlign: 'center',
+    marginBottom: 6,
+  },
+  videoInspectMeta: {
+    ...theme.typography.caption,
+    color: theme.colors.accent,
+    fontWeight: '600',
   },
   image: {
     width: '100%',

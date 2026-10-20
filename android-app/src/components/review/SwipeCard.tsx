@@ -35,31 +35,40 @@ export const SwipeCard: React.FC<SwipeCardProps> = ({
   hapticEnabled = true,
 }) => {
   const pan = useRef(new Animated.ValueXY()).current;
+  const isSwiping = useRef(false);
   const [imageError, setImageError] = useState(false);
 
   const panResponder = useRef(
     PanResponder.create({
-      onStartShouldSetPanResponder: () => true,
+      onStartShouldSetPanResponder: () => !isSwiping.current,
       onPanResponderMove: Animated.event([null, { dx: pan.x, dy: pan.y }], {
         useNativeDriver: false,
       }),
       onPanResponderRelease: (_, gesture) => {
+        if (isSwiping.current) return;
+
         if (gesture.dx > SWIPE_THRESHOLD) {
           // Swipe Right: KEEP
+          isSwiping.current = true;
           triggerHaptic();
           Animated.timing(pan, {
             toValue: { x: SCREEN_WIDTH + 100, y: gesture.dy },
-            duration: 250,
+            duration: 220,
             useNativeDriver: false,
-          }).start(() => onSwipeRight(item));
+          }).start(() => {
+            onSwipeRight(item);
+          });
         } else if (gesture.dx < -SWIPE_THRESHOLD) {
           // Swipe Left: DELETE
+          isSwiping.current = true;
           triggerHaptic();
           Animated.timing(pan, {
             toValue: { x: -SCREEN_WIDTH - 100, y: gesture.dy },
-            duration: 250,
+            duration: 220,
             useNativeDriver: false,
-          }).start(() => onSwipeLeft(item));
+          }).start(() => {
+            onSwipeLeft(item);
+          });
         } else {
           // Spring back to center
           Animated.spring(pan, {
@@ -67,7 +76,9 @@ export const SwipeCard: React.FC<SwipeCardProps> = ({
             friction: 6,
             tension: 40,
             useNativeDriver: false,
-          }).start();
+          }).start(() => {
+            isSwiping.current = false;
+          });
         }
       },
     })
@@ -101,6 +112,8 @@ export const SwipeCard: React.FC<SwipeCardProps> = ({
     extrapolate: 'clamp',
   });
 
+  const isVideo = item.mediaType === 'video';
+
   return (
     <Animated.View
       style={[
@@ -129,10 +142,23 @@ export const SwipeCard: React.FC<SwipeCardProps> = ({
           <Text style={styles.deleteBadgeText}>DELETE</Text>
         </Animated.View>
 
-        {/* Media Preview Image / Video Poster */}
-        {imageError ? (
+        {/* Media Preview: Handle Videos Safely Without Crashing Image Decoder */}
+        {isVideo ? (
           <View style={styles.fallbackContainer}>
-            <Text style={styles.fallbackIcon}>{item.mediaType === 'video' ? '🎬' : '🖼️'}</Text>
+            <View style={styles.videoPosterCircle}>
+              <Text style={styles.playIconLarge}>▶</Text>
+            </View>
+            <Text style={styles.fallbackText}>WhatsApp Video</Text>
+            <Text style={styles.fallbackSubtext}>{item.name}</Text>
+            {item.duration ? (
+              <Text style={styles.videoDurationLabel}>
+                {MediaDiscoveryService.formatDuration(item.duration)} • {MediaDiscoveryService.formatBytes(item.size)}
+              </Text>
+            ) : null}
+          </View>
+        ) : imageError ? (
+          <View style={styles.fallbackContainer}>
+            <Text style={styles.fallbackIcon}>🖼️</Text>
             <Text style={styles.fallbackText}>Preview Unavailable</Text>
             <Text style={styles.fallbackSubtext}>{item.name}</Text>
           </View>
@@ -141,19 +167,16 @@ export const SwipeCard: React.FC<SwipeCardProps> = ({
             source={{ uri: item.uri }}
             style={styles.image}
             resizeMode="cover"
+            resizeMethod="resize"
             onError={() => setImageError(true)}
           />
         )}
 
         {/* Video Play Indicator */}
-        {item.mediaType === 'video' && (
+        {isVideo && (
           <View style={styles.videoIndicator}>
-            <Text style={styles.playIcon}>▶</Text>
-            {item.duration ? (
-              <Text style={styles.durationText}>
-                {MediaDiscoveryService.formatDuration(item.duration)}
-              </Text>
-            ) : null}
+            <Text style={styles.playIcon}>🎬</Text>
+            <Text style={styles.durationText}>Video</Text>
           </View>
         )}
       </TouchableOpacity>
@@ -222,7 +245,29 @@ const styles = StyleSheet.create({
   fallbackContainer: {
     alignItems: 'center',
     justifyContent: 'center',
-    padding: theme.spacing.lg,
+    padding: theme.spacing.xl,
+  },
+  videoPosterCircle: {
+    width: 68,
+    height: 68,
+    borderRadius: 34,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    borderWidth: 2,
+    borderColor: 'rgba(255, 255, 255, 0.25)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: theme.spacing.md,
+  },
+  playIconLarge: {
+    fontSize: 26,
+    color: '#FFF',
+    marginLeft: 4,
+  },
+  videoDurationLabel: {
+    ...theme.typography.caption,
+    color: theme.colors.accent,
+    fontWeight: '700',
+    marginTop: 8,
   },
   fallbackIcon: {
     fontSize: 48,

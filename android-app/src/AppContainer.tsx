@@ -94,21 +94,30 @@ const MainNavigator: React.FC = () => {
   };
 
   const handleDecision = async (item: MediaItem, decision: ReviewDecision) => {
-    await SessionStore.recordDecision(item.id, decision);
-    const updatedDecisions = await SessionStore.getDecisions();
-    setDecisions({ ...updatedDecisions });
-    setCurrentIndex(prev => prev + 1);
-    setCanUndo(true);
+    if (!item?.id) return;
+    try {
+      await SessionStore.recordDecision(item.id, decision);
+      const updatedDecisions = await SessionStore.getDecisions();
+      setDecisions({ ...updatedDecisions });
+      setCurrentIndex(prev => prev + 1);
+      setCanUndo(true);
+    } catch (e) {
+      console.warn('Failed to record decision:', e);
+    }
   };
 
   const handleUndo = async () => {
-    const undone = await SessionStore.undoLastDecision();
-    if (undone) {
-      const updatedDecisions = await SessionStore.getDecisions();
-      setDecisions({ ...updatedDecisions });
-      setCurrentIndex(prev => Math.max(0, prev - 1));
-      const session = await SessionStore.loadSession();
-      setCanUndo(session.history.length > 0);
+    try {
+      const undone = await SessionStore.undoLastDecision();
+      if (undone) {
+        const updatedDecisions = await SessionStore.getDecisions();
+        setDecisions({ ...updatedDecisions });
+        setCurrentIndex(prev => Math.max(0, prev - 1));
+        const session = await SessionStore.loadSession();
+        setCanUndo(session.history.length > 0);
+      }
+    } catch (e) {
+      console.warn('Failed to undo decision:', e);
     }
   };
 
@@ -175,7 +184,7 @@ const MainNavigator: React.FC = () => {
 
   return (
     <SafeAreaView style={styles.root}>
-      <StatusBar barStyle="light-content" backgroundColor={theme.colors.background} />
+      <StatusBar barStyle="light-content" />
 
       <View style={styles.screenContainer}>
         {currentScreen === 'home' && (
