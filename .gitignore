@@ -1,0 +1,43 @@
+# Dependencies
+node_modules/
+android-app/node_modules/
+
+# Production build outputs
+dist/
+
+# Android build outputs & binaries
+android-app/android/app/build/
+android-app/android/build/
+android-app/android/.gradle/
+android-app/.bundle/
+build/
+bin/
+*.apk
+*.aab
+*.xapk
+public/releases/*.apk
+dist/releases/*.apk
+
+# iOS build outputs & Pods
+android-app/ios/build/
+android-app/ios/Pods/
+android-app/ios/Podfile.lock
+
+# Environment & local config
+.env
+.env.local
+.env.*.local
+local.properties
+.idea/
+.vscode/
+*.iml
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# OS Files
+.DS_Store
+Thumbs.db
