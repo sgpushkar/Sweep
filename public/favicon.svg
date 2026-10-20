@@ -1,1 +1,28 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32"><rect width="32" height="32" rx="8" fill="#0b0b0c"/><path d="M9 22L23 10" stroke="#e8e6e1" stroke-width="3" stroke-linecap="round"/></svg>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 192 192" fill="none">
+  <defs>
+    <radialGradient id="bg" cx="50%" cy="30%" r="80%">
+      <stop offset="0%" stop-color="#16181e"/>
+      <stop offset="100%" stop-color="#0a0b0d"/>
+    </radialGradient>
+    <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="8" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+    <linearGradient id="slash" x1="0%" y1="100%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#e8ecf2"/>
+      <stop offset="50%" stop-color="#ffffff"/>
+      <stop offset="100%" stop-color="#e2e8f0"/>
+    </linearGradient>
+  </defs>
+  <!-- Squircle Base -->
+  <rect x="8" y="8" width="176" height="176" rx="42" fill="url(#bg)" stroke="rgba(255, 255, 255, 0.12)" stroke-width="2"/>
+  <!-- Ambient Glow Behind Slash -->
+  <line x1="58" y1="134" x2="134" y2="58" stroke="#ffffff" stroke-width="26" stroke-linecap="round" opacity="0.45" filter="url(#glow)"/>
+  <!-- Solid Bright Diagonal Core -->
+  <line x1="58" y1="134" x2="134" y2="58" stroke="url(#slash)" stroke-width="19" stroke-linecap="round"/>
+  <!-- Sleek Center Specular Ridge -->
+  <line x1="60" y1="132" x2="132" y2="60" stroke="#ffffff" stroke-width="6" stroke-linecap="round" opacity="0.9"/>
+</svg>
