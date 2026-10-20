@@ -1,21 +1,200 @@
-import {RELEASE,status} from '../release.js';
-import {ITEMS} from '../data.js';
-import {Art} from './Art.jsx';
-import {DlBtn} from './DlBtn.jsx';
+import { useState, useRef, useEffect } from 'react';
+import { RELEASE } from '../release.js';
+import { SAMPLE_MEDIA } from '../data.js';
+import { DlBtn } from './DlBtn.jsx';
 
-export function Hero(){return <header className="hero" id="top"><div className="wrap">
-  <div>
-    <p className="eyebrow">Android · WhatsApp media</p>
-    <h1>Clear the clutter. <em>Skip the scrolling.</em></h1>
-    <p className="lead">Swipe through your WhatsApp images and videos, keep what matters, and mark unwanted files for deletion. No endless manual sorting.</p>
-    <div className="row"><DlBtn/><a className="btn" href="#features">Explore features</a></div>
-    {status!=="ready"&&<p className="tag">No APK published yet. The download unlocks when a release is configured.</p>}
-    {status==="ready"&&RELEASE.minAndroid&&<p className="tag">{RELEASE.version&&"v"+RELEASE.version+" · "}{RELEASE.minAndroid}+</p>}
-  </div>
-  <div style={{paddingBottom:20}} aria-hidden="true"><div className="phone"><div className="screen">
-    <div className="bar"><span>REVIEW</span><span>3/128</span></div>
-    <div className="stage"><div className="card back" style={{transform:"scale(.94) translateY(14px) rotate(3deg)"}}><Art it={ITEMS[1]}/></div>
-    <div className="card" style={{transform:"rotate(-6deg) translateX(-14px)",cursor:"default"}}><Art it={ITEMS[0]}/><span className="stamp d" style={{opacity:.9}}>DELETE</span><div className="meta">IMG-20260412-WA0031.jpg<br/><span style={{color:"var(--mut)"}}>Image · 2.4 MB</span></div></div></div>
-    <div className="acts"><span className="act" style={{display:"grid",placeContent:"center",color:"var(--del)"}}>✕</span><span className="act" style={{display:"grid",placeContent:"center",color:"var(--acc)"}}>✓</span></div>
-  </div><span className="pv">PREVIEW · NOT A RELEASED BUILD</span></div></div>
-</div></header>}
+export function Hero() {
+  const [activeIdx, setActiveIdx] = useState(0);
+  const [history, setHistory] = useState([]);
+  const [dragOffset, setDragOffset] = useState(0);
+  const [isDragging, setIsDragging] = useState(false);
+  const [animatingDir, setAnimatingDir] = useState(null);
+
+  const startXRef = useRef(0);
+  const currentItem = SAMPLE_MEDIA[activeIdx % SAMPLE_MEDIA.length];
+
+  const stagedItems = history.filter((h) => h.decision === 'discard');
+  const stagedCount = stagedItems.length;
+  const stagedMb = stagedItems.reduce((acc, h) => acc + (parseFloat(h.item.size) || 3.0), 0).toFixed(1);
+
+  const handleDecision = (decision) => {
+    if (animatingDir) return;
+    setAnimatingDir(decision === 'discard' ? 'left' : 'right');
+
+    setTimeout(() => {
+      setHistory((prev) => [...prev, { item: currentItem, decision }]);
+      setActiveIdx((i) => i + 1);
+      setDragOffset(0);
+      setAnimatingDir(null);
+    }, 200);
+  };
+
+  const handleUndo = () => {
+    if (history.length === 0 || animatingDir) return;
+    setHistory((prev) => prev.slice(0, -1));
+    setActiveIdx((i) => Math.max(0, i - 1));
+  };
+
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+      if (e.key === 'ArrowLeft' || e.key === 'a' || e.key === 'A') handleDecision('discard');
+      else if (e.key === 'ArrowRight' || e.key === 'd' || e.key === 'D') handleDecision('keep');
+      else if (e.key === 'Backspace' || e.key === 'z' || e.key === 'Z') handleUndo();
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  });
+
+  const onPointerDown = (e) => {
+    startXRef.current = e.clientX;
+    setIsDragging(true);
+    setDragOffset(0);
+    if (e.currentTarget.setPointerCapture) {
+      try { e.currentTarget.setPointerCapture(e.pointerId); } catch (err) {}
+    }
+  };
+
+  const onPointerMove = (e) => {
+    if (!isDragging) return;
+    setDragOffset(e.clientX - startXRef.current);
+  };
+
+  const onPointerUp = () => {
+    if (!isDragging) return;
+    setIsDragging(false);
+    if (dragOffset < -60) handleDecision('discard');
+    else if (dragOffset > 60) handleDecision('keep');
+    else setDragOffset(0);
+  };
+
+  let translateX = dragOffset;
+  let rotateDeg = dragOffset * 0.05;
+  let opacityVal = 1;
+
+  if (animatingDir === 'left') {
+    translateX = -320;
+    rotateDeg = -12;
+    opacityVal = 0;
+  } else if (animatingDir === 'right') {
+    translateX = 320;
+    rotateDeg = 12;
+    opacityVal = 0;
+  }
+
+  return (
+    <section className="hero-section" id="top">
+      <div className="container">
+        <div className="hero-grid">
+          {/* Left: Direct, honest typography */}
+          <div className="hero-text">
+            <span className="mono-kicker">Android Utility</span>
+
+            <h1 className="hero-title">
+              Clean up WhatsApp media with a swipe.
+            </h1>
+
+            <p className="hero-lead">
+              WhatsApp quietly saves every forwarded video, meme, and screenshot to your device.
+              Sweep surfaces them one by one. Swipe left to stage for deletion, right to keep.
+              Android confirms the batch before anything is removed.
+            </p>
+
+            <div className="hero-actions">
+              <DlBtn label={`Download APK · ${RELEASE.size}`} />
+              <a
+                href={RELEASE.repoUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="secondary-link"
+              >
+                Source code →
+              </a>
+            </div>
+
+            <div className="hero-meta-row">
+              <span>{RELEASE.minAndroid}</span>
+              <span>·</span>
+              <span>0 KB Network Traffic</span>
+              <span>·</span>
+              <span>MediaStore Protocol</span>
+            </div>
+          </div>
+
+          {/* Right: Quiet, minimal interactive card */}
+          <div className="hero-preview">
+            <div className="preview-card-frame">
+              <div className="preview-card-header">
+                <span className="preview-label">Review Card</span>
+                <span className="preview-counter">
+                  {(activeIdx % SAMPLE_MEDIA.length) + 1} of {SAMPLE_MEDIA.length}
+                </span>
+              </div>
+
+              {/* Media Card */}
+              <div
+                className={`preview-media-card ${isDragging ? 'dragging' : ''}`}
+                style={{
+                  transform: `translate3d(${translateX}px, 0, 0) rotate(${rotateDeg}deg)`,
+                  opacity: opacityVal,
+                }}
+                onPointerDown={onPointerDown}
+                onPointerMove={onPointerMove}
+                onPointerUp={onPointerUp}
+                onPointerCancel={onPointerUp}
+              >
+                <div className="media-image-container">
+                  <img src={currentItem.image} alt={currentItem.name} draggable="false" />
+                  <div className="media-overlay-tags">
+                    <span>{currentItem.type}</span>
+                    <span className="tag-size">{currentItem.size}</span>
+                  </div>
+                </div>
+
+                <div className="media-caption-panel">
+                  <span className="caption-text">{currentItem.caption}</span>
+                  <span className="caption-sub">{currentItem.origin}</span>
+                </div>
+              </div>
+
+              {/* Clean Controls */}
+              <div className="preview-controls">
+                <button
+                  type="button"
+                  className="control-btn btn-discard"
+                  onClick={() => handleDecision('discard')}
+                >
+                  ← Discard
+                </button>
+
+                <button
+                  type="button"
+                  className="control-btn-undo"
+                  onClick={handleUndo}
+                  disabled={history.length === 0}
+                  title="Undo"
+                >
+                  ↺
+                </button>
+
+                <button
+                  type="button"
+                  className="control-btn btn-keep"
+                  onClick={() => handleDecision('keep')}
+                >
+                  Keep →
+                </button>
+              </div>
+
+              {/* Status bar */}
+              <div className="preview-footer-status">
+                <span>Queued for deletion:</span>
+                <span className="status-val">{stagedCount} files ({stagedMb} MB)</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}

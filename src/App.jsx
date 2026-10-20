@@ -1,15 +1,69 @@
-import {useState,useEffect} from 'react';
-import {RELEASE} from './release.js';
-import {Nav,Footer,NotFound} from './components/Layout.jsx';
-import {Hero} from './components/Hero.jsx';
-import {Swipe} from './components/Swipe.jsx';
-import {Features,How,Privacy,Download,Faq} from './components/Sections.jsx';
+import { useState, useEffect } from 'react';
+import { RELEASE, loadRelease } from './release.js';
+import { Nav, Footer, NotFound } from './components/Layout.jsx';
+import { Hero } from './components/Hero.jsx';
+import { HowItWorks, SecurityAndPrivacy, InstallGuide, SpecsSection, FaqSection } from './components/Sections.jsx';
 
-export default function App(){
-  const [h,setH]=useState(location.hash);
-  useEffect(()=>{const f=()=>setH(location.hash);addEventListener("hashchange",f);return()=>removeEventListener("hashchange",f)},[]);
-  useEffect(()=>{document.title=`${RELEASE.name} — ${RELEASE.tagline}`},[]);
-  const ok=["","#","#top","#features","#how","#privacy","#download","#faq","#demo"].includes(h);
-  if(!ok)return <><Nav/><NotFound/><Footer/></>;
-  return <><Nav/><main><Hero/><section id="demo"><div className="wrap"><Swipe/></div></section><Features/><How/><Privacy/><Download/><Faq/></main><Footer/></>;
+export default function App() {
+  const [hash, setHash] = useState(location.hash);
+
+  useEffect(() => {
+    loadRelease();
+    const handleHash = () => setHash(location.hash);
+    window.addEventListener('hashchange', handleHash);
+    return () => window.removeEventListener('hashchange', handleHash);
+  }, []);
+
+  useEffect(() => {
+    document.title = `${RELEASE.name} — Clean up WhatsApp media with a swipe`;
+  }, []);
+
+  const validHashes = [
+    '',
+    '#',
+    '#top',
+    '#how-it-works',
+    '#security',
+    '#install',
+    '#specs',
+    '#faq',
+  ];
+
+  if (!validHashes.includes(hash)) {
+    return (
+      <div className="editorial-app">
+        <Nav />
+        <NotFound />
+        <Footer />
+      </div>
+    );
+  }
+
+  return (
+    <div className="editorial-app">
+      <Nav />
+
+      <main id="main">
+        {/* Minimalist Hero with Review Card */}
+        <Hero />
+
+        {/* 3-Step Protocol */}
+        <HowItWorks />
+
+        {/* Security & Offline Architecture */}
+        <SecurityAndPrivacy />
+
+        {/* Simple Android Install Walkthrough */}
+        <InstallGuide />
+
+        {/* Technical Specs & Verification */}
+        <SpecsSection />
+
+        {/* Questions & Answers */}
+        <FaqSection />
+      </main>
+
+      <Footer />
+    </div>
+  );
 }
