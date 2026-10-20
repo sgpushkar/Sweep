@@ -18,10 +18,10 @@ export const BottomTabBar: React.FC<BottomTabBarProps> = ({ queueCount = 0 }) =>
   const { activeTab, navigateTab } = useAppNavigation();
 
   const tabs: TabItem[] = [
-    { id: 'home', label: 'Home', icon: '⚡' },
-    { id: 'clean', label: 'Clean', icon: '🧹' },
-    { id: 'storage', label: 'Storage', icon: '📊' },
-    { id: 'settings', label: 'Settings', icon: '⚙️' },
+    { id: 'home', label: 'Home', icon: '✦' },
+    { id: 'clean', label: 'Clean', icon: '◈' },
+    { id: 'storage', label: 'Storage', icon: '◫' },
+    { id: 'settings', label: 'Settings', icon: '⚙' },
   ];
 
   return (
@@ -63,10 +63,10 @@ export const BottomTabBar: React.FC<BottomTabBarProps> = ({ queueCount = 0 }) =>
 const styles = StyleSheet.create({
   container: {
     flexDirection: 'row',
-    backgroundColor: theme.colors.surface,
+    backgroundColor: '#0c0c0f',
     borderTopWidth: 1,
     borderTopColor: theme.colors.borderSubtle,
-    paddingVertical: 8,
+    paddingVertical: 10,
     paddingHorizontal: theme.spacing.md,
   },
   tabButton: {
@@ -76,21 +76,24 @@ const styles = StyleSheet.create({
   },
   iconBox: {
     position: 'relative',
+    height: 22,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   icon: {
-    fontSize: 20,
-    opacity: 0.6,
+    fontSize: 16,
+    color: theme.colors.textMuted,
   },
   activeIcon: {
-    opacity: 1,
+    color: theme.colors.accent,
   },
   badgeDot: {
     position: 'absolute',
     top: -2,
-    right: -6,
-    width: 8,
-    height: 8,
-    borderRadius: 4,
+    right: -8,
+    width: 6,
+    height: 6,
+    borderRadius: 3,
     backgroundColor: theme.colors.danger,
   },
   label: {
@@ -102,6 +105,6 @@ const styles = StyleSheet.create({
   },
   activeLabel: {
     color: theme.colors.accent,
-    fontWeight: '700',
+    fontWeight: '600',
   },
 });

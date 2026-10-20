@@ -1,43 +1,43 @@
 export const colors = {
-  // Ultra-Deep OLED Backgrounds
-  background: '#040507',
-  backgroundElevated: '#0A0C10',
-  surface: '#11141A',
-  surfaceElevated: '#171B24',
-  surfaceHighlight: '#222735',
+  // Pure Minimalist Obsidian Backgrounds (matching landing page #09090b)
+  background: '#09090b',
+  backgroundElevated: '#121216',
+  surface: '#121216',
+  surfaceElevated: '#18181e',
+  surfaceHighlight: '#22222a',
 
-  // Borders & Dividers with specular laser contrast
-  borderSubtle: '#1C212B',
-  borderDefault: '#283040',
-  borderFocus: '#00F59B',
+  // Hairline Minimalist Borders
+  borderSubtle: '#1e1e24',
+  borderDefault: '#27272a',
+  borderFocus: '#10b981',
 
-  // High-Legibility Cyber Typography
-  textPrimary: '#FFFFFF',
-  textSecondary: '#A0AEC0',
-  textMuted: '#64748B',
-  textDisabled: '#3A4454',
+  // Editorial High-Legibility Typography
+  textPrimary: '#f4f4f5',
+  textSecondary: '#a1a1aa',
+  textMuted: '#71717a',
+  textDisabled: '#3f3f46',
 
-  // Accents - Keep & Primary (Luminous Cyber Emerald)
-  accent: '#00F59B',
-  accentDark: '#00BA74',
-  accentLight: '#5CFFC1',
-  accentSubtle: 'rgba(0, 245, 155, 0.14)',
+  // Clean Emerald Accent (matching web --accent: #10b981)
+  accent: '#10b981',
+  accentDark: '#059669',
+  accentLight: '#34d399',
+  accentSubtle: 'rgba(16, 185, 129, 0.12)',
 
-  // Delete & Danger (Luminous Crimson)
-  danger: '#FF3366',
-  dangerDark: '#E01E53',
-  dangerLight: '#FF6B8B',
-  dangerSubtle: 'rgba(255, 51, 102, 0.14)',
+  // Clean Minimal Red
+  danger: '#ef4444',
+  dangerDark: '#dc2626',
+  dangerLight: '#f87171',
+  dangerSubtle: 'rgba(239, 68, 68, 0.12)',
 
-  // Warning & Caution (Amber Gold)
-  warning: '#FFB800',
-  warningSubtle: 'rgba(255, 184, 0, 0.14)',
+  // Warning & Caution
+  warning: '#f59e0b',
+  warningSubtle: 'rgba(245, 158, 11, 0.12)',
 
-  // Info & Neutral (Electric Cyan)
-  info: '#00E5FF',
-  infoSubtle: 'rgba(0, 229, 255, 0.14)',
+  // Info & Neutral
+  info: '#3b82f6',
+  infoSubtle: 'rgba(59, 130, 246, 0.12)',
 
   // Overlays & Deep Shadows
-  overlay: 'rgba(0, 0, 0, 0.88)',
-  cardShadow: 'rgba(0, 0, 0, 0.75)',
+  overlay: 'rgba(9, 9, 11, 0.92)',
+  cardShadow: 'rgba(0, 0, 0, 0.6)',
 };

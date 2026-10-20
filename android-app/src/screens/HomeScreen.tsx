@@ -61,8 +61,8 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
       {/* Editorial Header */}
       <View style={styles.header}>
         <View>
-          <Text style={styles.eyebrow}>LOCAL UTILITY</Text>
-          <Text style={styles.title}>WhatsApp Cleaner</Text>
+          <Text style={styles.eyebrow}>100% OFFLINE PROTOCOL</Text>
+          <Text style={styles.title}>Sweep</Text>
         </View>
 
         <TouchableOpacity

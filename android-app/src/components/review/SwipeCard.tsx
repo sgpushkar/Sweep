@@ -233,7 +233,7 @@ const styles = StyleSheet.create({
   },
   previewContainer: {
     flex: 1,
-    backgroundColor: '#050709',
+    backgroundColor: theme.colors.background,
     position: 'relative',
     alignItems: 'center',
     justifyContent: 'center',

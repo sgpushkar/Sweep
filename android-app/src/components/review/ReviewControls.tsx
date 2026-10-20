@@ -58,7 +58,7 @@ export const ReviewControls: React.FC<ReviewControlsProps> = ({
         accessibilityLabel="Mark for deletion"
       >
         <Text style={styles.deleteIcon}>✕</Text>
-        <Text style={styles.actionLabel}>DELETE</Text>
+        <Text style={[styles.actionLabel, styles.deleteText]}>DELETE</Text>
       </TouchableOpacity>
 
       {/* Keep Button (Primary Action Right) */}
@@ -73,7 +73,7 @@ export const ReviewControls: React.FC<ReviewControlsProps> = ({
         accessibilityLabel="Keep item"
       >
         <Text style={styles.keepIcon}>✓</Text>
-        <Text style={styles.actionLabel}>KEEP</Text>
+        <Text style={[styles.actionLabel, styles.keepText]}>KEEP</Text>
       </TouchableOpacity>
 
       {/* Skip Button */}
@@ -139,7 +139,12 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '800',
     letterSpacing: 0.8,
+  },
+  deleteText: {
     color: '#FFFFFF',
+  },
+  keepText: {
+    color: '#09090b',
   },
   smallButton: {
     width: 52,
