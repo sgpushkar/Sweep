@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from 'react';
-import { View, StyleSheet, StatusBar, SafeAreaView, Alert } from 'react-native';
+import { View, StyleSheet, StatusBar, SafeAreaView, Alert, Platform } from 'react-native';
 import { theme } from './theme/theme';
+
+const STATUSBAR_HEIGHT = Platform.OS === 'android' ? (StatusBar.currentHeight || 28) : 0;
 import { NavigationProvider, useAppNavigation } from './navigation/NavigationContext';
 import { BottomTabBar } from './components/common/BottomTabBar';
 import { HomeScreen } from './screens/HomeScreen';
@@ -174,7 +176,7 @@ const MainNavigator: React.FC = () => {
     return true;
   });
 
-  const deleteCount = Object.values(decisions).filter(d => d.decision === 'DELETE').length;
+  const deleteCount = Object.values(decisions || {}).filter(d => d?.decision === 'DELETE').length;
 
   const isMainTab =
     currentScreen === 'home' ||
@@ -264,6 +266,7 @@ const styles = StyleSheet.create({
   root: {
     flex: 1,
     backgroundColor: theme.colors.background,
+    paddingTop: STATUSBAR_HEIGHT,
   },
   screenContainer: {
     flex: 1,

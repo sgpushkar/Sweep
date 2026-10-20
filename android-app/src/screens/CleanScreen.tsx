@@ -40,7 +40,7 @@ export const CleanScreen: React.FC<CleanScreenProps> = ({
   const currentItem = items[currentIndex];
   const isFinished = totalCount > 0 && currentIndex >= totalCount;
 
-  const deleteCount = Object.values(decisions).filter(d => d.decision === 'DELETE').length;
+  const deleteCount = Object.values(decisions || {}).filter(d => d?.decision === 'DELETE').length;
   const progressPercent = totalCount > 0 ? (currentIndex / totalCount) * 100 : 0;
 
   if (totalCount === 0) {
@@ -97,7 +97,7 @@ export const CleanScreen: React.FC<CleanScreenProps> = ({
   }
 
   return (
-    <SafeAreaView style={styles.container}>
+    <View style={styles.container}>
       {/* Top Header Progress Bar */}
       <View style={styles.progressHeader}>
         <View style={styles.progressRow}>
@@ -141,7 +141,7 @@ export const CleanScreen: React.FC<CleanScreenProps> = ({
         visible={!!inspectItem}
         onClose={() => setInspectItem(null)}
       />
-    </SafeAreaView>
+    </View>
   );
 };
 

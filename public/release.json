@@ -4,7 +4,7 @@
   "size": "50.7 MB",
   "date": "2026-10-21",
   "minAndroid": "Android 8.0 (API 26)",
-  "sha256": "e85b226fe9fd807f9d3ddba82243357d7d133a6cb3002fdaafbe06c7ac03553e",
+  "sha256": "7c33b3b461cf70d4e7ca597ac82229c03435f451de58df4ad03ce5a2dce3f792",
   "notes": [
     "Initial production release of WhatsApp Media Cleaner",
     "Real Android MediaStore image and video discovery",

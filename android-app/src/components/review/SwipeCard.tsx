@@ -16,8 +16,10 @@ import { theme } from '../../theme/theme';
 import { MediaDiscoveryService } from '../../services/mediaDiscovery';
 import { Badge } from '../common/Badge';
 
-const { width: SCREEN_WIDTH } = Dimensions.get('window');
+const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 const SWIPE_THRESHOLD = SCREEN_WIDTH * 0.28;
+const DECK_IMAGE_WIDTH = Math.round(SCREEN_WIDTH - 48);
+const DECK_IMAGE_HEIGHT = Math.round(SCREEN_HEIGHT * 0.58);
 
 interface SwipeCardProps {
   item: MediaItem;
@@ -165,7 +167,7 @@ export const SwipeCard: React.FC<SwipeCardProps> = ({
         ) : (
           <Image
             source={{ uri: item.uri }}
-            style={styles.image}
+            style={[styles.image, { width: DECK_IMAGE_WIDTH, height: DECK_IMAGE_HEIGHT }]}
             resizeMode="cover"
             resizeMethod="resize"
             onError={() => setImageError(true)}
@@ -239,8 +241,8 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   image: {
-    width: '100%',
-    height: '100%',
+    width: DECK_IMAGE_WIDTH,
+    height: DECK_IMAGE_HEIGHT,
   },
   fallbackContainer: {
     alignItems: 'center',

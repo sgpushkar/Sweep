@@ -22,25 +22,31 @@ export class SessionStore {
   };
 
   static async loadSession(): Promise<SavedSession> {
-    const data = await WhatsAppCleanerNativeBridge.loadData<SavedSession>(SESSION_KEY);
-    if (data && data.version === 1) {
-      this.inMemorySession = data;
-    }
+    try {
+      const data = await WhatsAppCleanerNativeBridge.loadData<SavedSession>(SESSION_KEY);
+      if (data && data.version === 1 && data.decisions && Array.isArray(data.history)) {
+        this.inMemorySession = data;
+      }
+    } catch {}
+    if (!this.inMemorySession.decisions) this.inMemorySession.decisions = {};
+    if (!Array.isArray(this.inMemorySession.history)) this.inMemorySession.history = [];
     return this.inMemorySession;
   }
 
   static async saveSession(session: SavedSession): Promise<void> {
     this.inMemorySession = session;
-    await WhatsAppCleanerNativeBridge.saveData(SESSION_KEY, session);
+    WhatsAppCleanerNativeBridge.saveData(SESSION_KEY, session).catch(() => {});
   }
 
   static async getDecisions(): Promise<ReviewDecisionMap> {
-    const s = await this.loadSession();
-    return s.decisions;
+    return this.inMemorySession.decisions || {};
   }
 
   static async recordDecision(id: string, decision: ReviewDecision): Promise<void> {
-    const s = await this.loadSession();
+    const s = this.inMemorySession;
+    if (!s.decisions) s.decisions = {};
+    if (!Array.isArray(s.history)) s.history = [];
+
     const prev = s.decisions[id]?.decision || 'PENDING';
 
     s.decisions[id] = {
@@ -54,7 +60,7 @@ export class SessionStore {
       newDecision: decision,
     });
 
-    s.currentIndex = Math.max(0, s.currentIndex + 1);
+    s.currentIndex = Math.max(0, (s.currentIndex || 0) + 1);
     await this.saveSession(s);
   }
 
