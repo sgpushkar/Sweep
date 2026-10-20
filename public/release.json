@@ -1,6 +1,6 @@
 {
   "version": "1.0.0",
-  "apkUrl": "/releases/WhatsAppMediaCleaner.apk",
+  "apkUrl": "https://github.com/sgpushkar/Sweep/releases/download/v1.0.0/WhatsAppMediaCleaner.apk",
   "size": "50.8 MB",
   "date": "2026-10-13",
   "minAndroid": "Android 8.0 (API 26)",
